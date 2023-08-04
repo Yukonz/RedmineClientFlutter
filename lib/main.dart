@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 
 void main() {
   runApp(const RedmineClient());
@@ -56,58 +57,48 @@ class _MainPageState extends State<MainPage> {
         throw UnimplementedError('No page added for $_selectedIndex');
     }
 
+    List<String> mainMenuItems = ['User Account', 'My Tasks', 'About'];
+
+    List<Widget> mainMenuWidgets(List<String> mainMenuItems)
+    {
+      List<Widget> list = <Widget>[];
+
+      list.add(const DrawerHeader(
+        decoration: BoxDecoration(
+          color: Colors.blue,
+        ),
+        child: Text(
+          'Main Menu',
+          style: TextStyle(color: Colors.white),
+        ),
+      ));
+
+      for(var i = 0; i < mainMenuItems.length; i++){
+        list.add(
+          ListTile(
+            title: Text(mainMenuItems[i]),
+            selected: _selectedIndex == i,
+            onTap: () {
+              // Update the state of the app
+              _onItemTapped(i);
+              // Then close the drawer
+              Navigator.pop(context);
+            },
+          ),
+        );
+      }
+      return list;
+    }
+
     return Scaffold(
       appBar: AppBar(title: Text(widget.title)),
       body: Center(
         child: currentPage,
       ),
       drawer: Drawer(
-        // Add a ListView to the drawer. This ensures the user can scroll
-        // through the options in the drawer if there isn't enough vertical
-        // space to fit everything.
         child: ListView(
-          // Important: Remove any padding from the ListView.
           padding: EdgeInsets.zero,
-          children: [
-            const DrawerHeader(
-              decoration: BoxDecoration(
-                color: Colors.blue,
-              ),
-              child: Text('Manin Menu',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-            ListTile(
-              title: const Text('User Account'),
-              selected: _selectedIndex == 0,
-              onTap: () {
-                // Update the state of the app
-                _onItemTapped(0);
-                // Then close the drawer
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              title: const Text('My Tasks'),
-              selected: _selectedIndex == 1,
-              onTap: () {
-                // Update the state of the app
-                _onItemTapped(1);
-                // Then close the drawer
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              title: const Text('About'),
-              selected: _selectedIndex == 2,
-              onTap: () {
-                // Update the state of the app
-                _onItemTapped(2);
-                // Then close the drawer
-                Navigator.pop(context);
-              },
-            ),
-          ],
+          children: mainMenuWidgets(mainMenuItems),
         ),
       ),
     );
@@ -157,20 +148,13 @@ class _AboutPageState extends State<AboutPage> {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'About this app',
-                style: optionStyle,
-              ),
-            ],
-          ),
-        ],
+    return Scaffold(
+      backgroundColor: Colors.amberAccent,
+      body: Center(
+        child: LoadingAnimationWidget.inkDrop(
+          color: Colors.white,
+          size: 75,
+        ),
       ),
     );
   }
@@ -185,6 +169,7 @@ class AccountPage extends StatefulWidget {
 
 class _AccountPageState extends State<AccountPage> {
   final _formKey = GlobalKey<FormState>();
+  bool _loginInProcess = false;
 
   TextEditingController urlController = TextEditingController();
   TextEditingController loginController = TextEditingController();
@@ -196,8 +181,21 @@ class _AccountPageState extends State<AccountPage> {
       padding: const EdgeInsets.fromLTRB(20, 10, 20, 10)
   );
 
-  @override
-  Widget build(BuildContext context) {
+  Widget loadingAnimation()
+  {
+    return Scaffold(
+      backgroundColor: Colors.amberAccent,
+      body: Center(
+        child: LoadingAnimationWidget.inkDrop(
+          color: Colors.white,
+          size: 70,
+        ),
+      ),
+    );
+  }
+
+  Widget loginForm()
+  {
     return Scaffold(
       body: Form(
         key: _formKey,
@@ -259,7 +257,9 @@ class _AccountPageState extends State<AccountPage> {
                   child: ElevatedButton(
                     onPressed: () {
                       if (_formKey.currentState!.validate()) {
-                        // Navigate the user to the Home page
+                        setState(() {
+                          _loginInProcess = true;
+                        });
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Please fill input')),
@@ -276,5 +276,18 @@ class _AccountPageState extends State<AccountPage> {
         ),
       ),
     );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    Widget currentAction;
+
+    if (_loginInProcess) {
+      currentAction = loadingAnimation();
+    } else {
+      currentAction = loginForm();
+    }
+
+    return currentAction;
   }
 }
