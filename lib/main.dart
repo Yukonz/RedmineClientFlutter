@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(const RedmineClient());
@@ -8,14 +10,101 @@ void main() {
 class RedmineClient extends StatelessWidget {
   const RedmineClient({super.key});
 
-  static const appTitle = 'Redmine Client App';
-
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      title: appTitle,
-      home: MainPage(title: appTitle),
+    return ChangeNotifierProvider(
+      create: (context) => RedmineClientState(),
+      child: MaterialApp(
+        title: 'Redmine Client App',
+        theme: ThemeData(
+          useMaterial3: true,
+        ),
+        home: const MainPage(title: 'Redmine Client App'),
+      ),
     );
+  }
+}
+
+class RedmineClientState extends ChangeNotifier {
+  bool isLoggedIn = false;
+  bool loadingProcess = false;
+  bool? saveLoginDetails = false;
+
+  String hostURL = '';
+  String userLogin = '';
+  String userPassword = '';
+
+  TextEditingController urlController = TextEditingController();
+  TextEditingController loginController = TextEditingController();
+  TextEditingController passwordController = TextEditingController();
+
+  RedmineClientState() {
+    autoLogIn();
+  }
+
+  void autoLogIn() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String? savedHostURL = prefs.getString('host_url');
+    final String? savedUserLogin = prefs.getString('user_login');
+    final String? savedUserPassword = prefs.getString('user_password');
+
+    if (savedHostURL != null && savedUserLogin != null && savedUserPassword != null) {
+      isLoggedIn = true;
+      hostURL = savedHostURL;
+      userLogin = savedUserLogin;
+      userPassword = savedUserPassword;
+
+      urlController.text = savedHostURL;
+      loginController.text = savedUserLogin;
+      passwordController.text = savedUserPassword;
+
+      notifyListeners();
+
+      return;
+    }
+  }
+
+  void setSaveLoginOption(bool? saveLogin) async {
+    saveLoginDetails = saveLogin;
+    notifyListeners();
+  }
+
+  void toggleLoading()
+  {
+    loadingProcess = !loadingProcess;
+    notifyListeners();
+  }
+
+  Future<void> logout() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setString('user_password', "");
+    userPassword = '';
+    isLoggedIn = false;
+
+    notifyListeners();
+  }
+
+  Future<void> loginUser() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    toggleLoading();
+
+    if (saveLoginDetails == true) {
+      prefs.setString('host_url', urlController.text);
+      prefs.setString('user_login', loginController.text);
+      prefs.setString('user_password', passwordController.text);
+    }
+
+    hostURL = urlController.text;
+    userLogin = loginController.text;
+    userPassword = passwordController.text;
+    isLoggedIn = true;
+
+    notifyListeners();
+
+    Future.delayed(const Duration(milliseconds: 2000), () {
+      toggleLoading();
+    });
   }
 }
 
@@ -31,8 +120,6 @@ class MainPage extends StatefulWidget {
 class _MainPageState extends State<MainPage> {
   int _selectedIndex = 0;
 
-  static const TextStyle optionStyle = TextStyle(fontSize: 30, fontWeight: FontWeight.bold);
-
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
@@ -42,6 +129,10 @@ class _MainPageState extends State<MainPage> {
   @override
   Widget build(BuildContext context) {
     StatefulWidget currentPage;
+
+    var appState = context.watch<RedmineClientState>();
+
+    bool loadingProcess = appState.loadingProcess;
 
     switch (_selectedIndex) {
       case 0:
@@ -90,18 +181,30 @@ class _MainPageState extends State<MainPage> {
       return list;
     }
 
-    return Scaffold(
-      appBar: AppBar(title: Text(widget.title)),
-      body: Center(
-        child: currentPage,
-      ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: mainMenuWidgets(mainMenuItems),
+    if (loadingProcess) {
+      return Scaffold(
+        backgroundColor: Colors.amberAccent,
+        body: Center(
+          child: LoadingAnimationWidget.inkDrop(
+            color: Colors.white,
+            size: 75,
+          ),
         ),
-      ),
-    );
+      );
+    } else {
+      return Scaffold(
+        appBar: AppBar(title: Text(widget.title)),
+        body: Center(
+          child: currentPage,
+        ),
+        drawer: Drawer(
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: mainMenuWidgets(mainMenuItems),
+          ),
+        ),
+      );
+    }
   }
 }
 
@@ -148,13 +251,20 @@ class _AboutPageState extends State<AboutPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.amberAccent,
-      body: Center(
-        child: LoadingAnimationWidget.inkDrop(
-          color: Colors.white,
-          size: 75,
-        ),
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'About this application',
+                style: optionStyle,
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -169,33 +279,22 @@ class AccountPage extends StatefulWidget {
 
 class _AccountPageState extends State<AccountPage> {
   final _formKey = GlobalKey<FormState>();
-  bool _loginInProcess = false;
-
-  TextEditingController urlController = TextEditingController();
-  TextEditingController loginController = TextEditingController();
-  TextEditingController passwordController = TextEditingController();
-
   final ButtonStyle loginBtnStyle =
   ElevatedButton.styleFrom(
       textStyle: const TextStyle(fontSize: 26),
       padding: const EdgeInsets.fromLTRB(20, 10, 20, 10)
   );
 
-  Widget loadingAnimation()
-  {
-    return Scaffold(
-      backgroundColor: Colors.amberAccent,
-      body: Center(
-        child: LoadingAnimationWidget.inkDrop(
-          color: Colors.white,
-          size: 70,
-        ),
-      ),
-    );
-  }
-
   Widget loginForm()
   {
+    var appState = context.watch<RedmineClientState>();
+
+    bool? saveLoginDetails = appState.saveLoginDetails;
+
+    TextEditingController urlController = appState.urlController;
+    TextEditingController loginController = appState.loginController;
+    TextEditingController passwordController = appState.passwordController;
+
     return Scaffold(
       body: Form(
         key: _formKey,
@@ -206,11 +305,13 @@ class _AccountPageState extends State<AccountPage> {
             children: [
               Padding(
                 padding:
-                const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 child: TextFormField(
                   controller: urlController,
                   decoration: const InputDecoration(
-                      border: OutlineInputBorder(), labelText: "Host URL"),
+                      border: OutlineInputBorder(),
+                      labelText: "Host URL"
+                  ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter host URL';
@@ -221,11 +322,13 @@ class _AccountPageState extends State<AccountPage> {
               ),
               Padding(
                 padding:
-                const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 child: TextFormField(
                   controller: loginController,
                   decoration: const InputDecoration(
-                      border: OutlineInputBorder(), labelText: "Login"),
+                      border: OutlineInputBorder(),
+                      labelText: "Login"
+                  ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your Login';
@@ -236,12 +339,15 @@ class _AccountPageState extends State<AccountPage> {
               ),
               Padding(
                 padding:
-                const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 child: TextFormField(
+                  autofocus: true,
                   controller: passwordController,
                   obscureText: true,
                   decoration: const InputDecoration(
-                      border: OutlineInputBorder(), labelText: "Password"),
+                      border: OutlineInputBorder(),
+                      labelText: "Password"
+                  ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your Password';
@@ -250,16 +356,33 @@ class _AccountPageState extends State<AccountPage> {
                   },
                 ),
               ),
+
               Padding(
                 padding:
-                const EdgeInsets.symmetric(horizontal: 8, vertical: 16.0),
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                child: Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.blue),
+                  ),
+                  child:
+                    CheckboxListTile(
+                      title: const Text('Save Login Details'),
+                      controlAffinity: ListTileControlAffinity.leading,
+                      value: saveLoginDetails,
+                      onChanged: (bool? newValue) {
+                        appState.setSaveLoginOption(newValue);
+                      },
+                    ),
+                )
+              ),
+              Padding(
+                padding:
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 child: Center(
                   child: ElevatedButton(
                     onPressed: () {
                       if (_formKey.currentState!.validate()) {
-                        setState(() {
-                          _loginInProcess = true;
-                        });
+                        appState.loginUser();
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Please fill input')),
@@ -280,14 +403,6 @@ class _AccountPageState extends State<AccountPage> {
 
   @override
   Widget build(BuildContext context) {
-    Widget currentAction;
-
-    if (_loginInProcess) {
-      currentAction = loadingAnimation();
-    } else {
-      currentAction = loginForm();
-    }
-
-    return currentAction;
+    return loginForm();
   }
 }
