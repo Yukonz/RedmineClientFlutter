@@ -113,7 +113,9 @@ class RedmineClientState extends ChangeNotifier {
 
     toggleLoading(true);
 
-    currentUser = getCurrentUser(urlController.text, loginController.text, passwordController.text);
+    ApiController apiController = ApiController(hostURL: urlController.text, login: loginController.text, password: passwordController.text);
+
+    currentUser = apiController.getCurrentUser();
 
     currentUser.then((userData){
       if (saveLoginDetails == true) {
@@ -132,6 +134,9 @@ class RedmineClientState extends ChangeNotifier {
       toggleLoading(false);
       notifyListeners();
       showAlertMessage('You have successfully logged into account', 1);
+
+      apiController.getAssignedTasks();
+
     }).catchError((error) {
       prefs.setBool('last_login_success', false);
 
