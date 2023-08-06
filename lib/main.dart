@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:redmine_client/models/user.dart';
+import 'package:redmine_client/controllers/api.dart';
 
 void main() {
   runApp(const RedmineClient());
@@ -28,15 +30,20 @@ class RedmineClient extends StatelessWidget {
 class RedmineClientState extends ChangeNotifier {
   bool isLoggedIn = false;
   bool loadingProcess = false;
+  bool showAlert = false;
   bool? saveLoginDetails = false;
 
   String hostURL = '';
   String userLogin = '';
   String userPassword = '';
 
+  String alertMessage = '';
+
   TextEditingController urlController = TextEditingController();
   TextEditingController loginController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
+
+  late Future<User> currentUser;
 
   RedmineClientState() {
     autoLogIn();
@@ -75,6 +82,13 @@ class RedmineClientState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void showAlertMessage(String message)
+  {
+    showAlert = true;
+    alertMessage = message;
+    notifyListeners();
+  }
+
   Future<void> logout() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.setString('user_password', "");
@@ -89,6 +103,17 @@ class RedmineClientState extends ChangeNotifier {
 
     toggleLoading();
 
+    try {
+      currentUser = getCurrentUser(urlController.text, loginController.text, passwordController.text);
+      Future.delayed(const Duration(milliseconds: 1500), () {
+        toggleLoading();
+        showAlertMessage('You have successfully logged in');
+      });
+    } on Exception catch (e) {
+      toggleLoading();
+      showAlertMessage('Unable to login');
+    }
+
     if (saveLoginDetails == true) {
       prefs.setString('host_url', urlController.text);
       prefs.setString('user_login', loginController.text);
@@ -101,10 +126,6 @@ class RedmineClientState extends ChangeNotifier {
     isLoggedIn = true;
 
     notifyListeners();
-
-    Future.delayed(const Duration(milliseconds: 2000), () {
-      toggleLoading();
-    });
   }
 }
 
@@ -126,6 +147,13 @@ class _MainPageState extends State<MainPage> {
     });
   }
 
+  void showTasksPage()
+  {
+    setState(() {
+      _selectedIndex = 1;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     StatefulWidget currentPage;
@@ -133,6 +161,9 @@ class _MainPageState extends State<MainPage> {
     var appState = context.watch<RedmineClientState>();
 
     bool loadingProcess = appState.loadingProcess;
+    bool showAlert = appState.showAlert;
+
+    String alertMessage = appState.alertMessage;
 
     switch (_selectedIndex) {
       case 0:
@@ -181,7 +212,24 @@ class _MainPageState extends State<MainPage> {
       return list;
     }
 
-    if (loadingProcess) {
+    if (showAlert) {
+      appState.showAlert = false;
+
+      return AlertDialog(
+        title: const Text("Information"),
+        content: Text(alertMessage),
+        actions: <Widget>[
+          TextButton(
+            child: const Text('OK'),
+            onPressed: () {
+              setState(() {
+                _selectedIndex = 1;
+              });
+            },
+          ),
+        ],
+      );
+    } else if (loadingProcess) {
       return Scaffold(
         backgroundColor: Colors.amberAccent,
         body: Center(
