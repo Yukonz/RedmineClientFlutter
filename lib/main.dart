@@ -45,7 +45,7 @@ class RedmineClientState extends ChangeNotifier {
   TextEditingController loginController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
 
-  late User currentUser;
+  late Future<User> currentUser;
 
   RedmineClientState() {
     autoLogIn();
@@ -56,9 +56,9 @@ class RedmineClientState extends ChangeNotifier {
     final String? savedHostURL = prefs.getString('host_url');
     final String? savedUserLogin = prefs.getString('user_login');
     final String? savedUserPassword = prefs.getString('user_password');
+    final bool? lastLoginSuccess = prefs.getBool('last_login_success');
 
     if (savedHostURL != null && savedUserLogin != null && savedUserPassword != null) {
-      isLoggedIn = true;
       hostURL = savedHostURL;
       userLogin = savedUserLogin;
       userPassword = savedUserPassword;
@@ -66,6 +66,10 @@ class RedmineClientState extends ChangeNotifier {
       urlController.text = savedHostURL;
       loginController.text = savedUserLogin;
       passwordController.text = savedUserPassword;
+
+      if (lastLoginSuccess == true) {
+        loginUser();
+      }
 
       notifyListeners();
 
@@ -95,8 +99,11 @@ class RedmineClientState extends ChangeNotifier {
   Future<void> logout() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.setString('user_password', "");
+    prefs.setBool('last_login_success', false);
     userPassword = '';
     isLoggedIn = false;
+
+    showAlertMessage('You have logged out', 0);
 
     notifyListeners();
   }
@@ -106,16 +113,16 @@ class RedmineClientState extends ChangeNotifier {
 
     toggleLoading(true);
 
-    Future<User> getUserData = getCurrentUser(urlController.text, loginController.text, passwordController.text);
+    currentUser = getCurrentUser(urlController.text, loginController.text, passwordController.text);
 
-    getUserData.then((userData){
-      currentUser = userData;
-
+    currentUser.then((userData){
       if (saveLoginDetails == true) {
         prefs.setString('host_url', urlController.text);
         prefs.setString('user_login', loginController.text);
         prefs.setString('user_password', passwordController.text);
       }
+
+      prefs.setBool('last_login_success', true);
 
       hostURL = urlController.text;
       userLogin = loginController.text;
@@ -124,8 +131,10 @@ class RedmineClientState extends ChangeNotifier {
 
       toggleLoading(false);
       notifyListeners();
-      showAlertMessage('You have successfully logged in', 1);
+      showAlertMessage('You have successfully logged into account', 1);
     }).catchError((error) {
+      prefs.setBool('last_login_success', false);
+
       toggleLoading(false);
       showAlertMessage('Unable to login', 0);
     });
@@ -163,40 +172,80 @@ class _MainPageState extends State<MainPage> {
 
     var appState = context.watch<RedmineClientState>();
 
+    bool isLoggedIn = appState.isLoggedIn;
     bool loadingProcess = appState.loadingProcess;
     bool showAlert = appState.showAlert;
 
     int showPageID = appState.showPageID;
     String alertMessage = appState.alertMessage;
 
+    late Future<User> currentUser = appState.currentUser;
+
     switch (_selectedIndex) {
       case 0:
-        currentPage = AccountPage();
+        currentPage = const AccountPage();
         break;
       case 1:
-        currentPage = TasksPage();
+        currentPage = const TasksPage();
         break;
       case 2:
-        currentPage = AboutPage();
+        currentPage = const AboutPage();
         break;
       default:
         throw UnimplementedError('No page added for $_selectedIndex');
     }
+
+    const userDetailsTextStyle = TextStyle(fontSize: 20, color: Colors.white);
 
     List<String> mainMenuItems = ['User Account', 'My Tasks', 'About'];
 
     List<Widget> mainMenuWidgets(List<String> mainMenuItems)
     {
       List<Widget> list = <Widget>[];
+      List<Widget> headerContent = <Widget>[];
 
-      list.add(const DrawerHeader(
-        decoration: BoxDecoration(
-          color: Colors.blue,
-        ),
-        child: Text(
+      if (isLoggedIn) {
+        headerContent.add(
+          FutureBuilder<User>(
+            future: currentUser,
+            builder: (context, snapshot) {
+              if (snapshot.hasData) {
+                return Column(children: [
+                  Text(snapshot.data!.login, style: userDetailsTextStyle),
+                  Text(snapshot.data!.email, style: userDetailsTextStyle),
+                  const SizedBox(height: 10.0),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                        textStyle: const TextStyle(fontSize: 18),
+                        padding: const EdgeInsets.fromLTRB(20, 10, 20, 10)
+                    ),
+                    child: const Text('Logout'),
+                    onPressed: () {
+                      appState.logout();
+                    },
+                  ),
+                ]);
+              } else if (snapshot.hasError) {
+                return Text('${snapshot.error}');
+              }
+
+              // By default, show a loading spinner.
+              return const CircularProgressIndicator();
+            },
+          ),
+        );
+      } else {
+        headerContent.add(const Text(
           'Main Menu',
           style: TextStyle(color: Colors.white),
+        ),);
+      }
+
+      list.add(DrawerHeader(
+        decoration: const BoxDecoration(
+          color: Colors.blue,
         ),
+        child: Column(children: headerContent)
       ));
 
       for(var i = 0; i < mainMenuItems.length; i++){

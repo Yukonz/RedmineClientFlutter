@@ -25,9 +25,4 @@ class User {
       lastLogin: json['user']['last_login_on']
     );
   }
-
-  String getUserEmail()
-  {
-    return email;
-  }
 }
