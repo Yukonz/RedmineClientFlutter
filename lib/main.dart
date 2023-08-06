@@ -28,6 +28,8 @@ class RedmineClient extends StatelessWidget {
 }
 
 class RedmineClientState extends ChangeNotifier {
+  int showPageID = 0;
+
   bool isLoggedIn = false;
   bool loadingProcess = false;
   bool showAlert = false;
@@ -43,7 +45,7 @@ class RedmineClientState extends ChangeNotifier {
   TextEditingController loginController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
 
-  late Future<User> currentUser;
+  late User currentUser;
 
   RedmineClientState() {
     autoLogIn();
@@ -76,16 +78,17 @@ class RedmineClientState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void toggleLoading()
+  void toggleLoading(bool loadingAnimation)
   {
-    loadingProcess = !loadingProcess;
+    loadingProcess = loadingAnimation;
     notifyListeners();
   }
 
-  void showAlertMessage(String message)
+  void showAlertMessage(String message, int pageID)
   {
     showAlert = true;
     alertMessage = message;
+    showPageID = pageID;
     notifyListeners();
   }
 
@@ -101,31 +104,31 @@ class RedmineClientState extends ChangeNotifier {
   Future<void> loginUser() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
 
-    toggleLoading();
+    toggleLoading(true);
 
-    try {
-      currentUser = getCurrentUser(urlController.text, loginController.text, passwordController.text);
-      Future.delayed(const Duration(milliseconds: 1500), () {
-        toggleLoading();
-        showAlertMessage('You have successfully logged in');
-      });
-    } on Exception catch (e) {
-      toggleLoading();
-      showAlertMessage('Unable to login');
-    }
+    Future<User> getUserData = getCurrentUser(urlController.text, loginController.text, passwordController.text);
 
-    if (saveLoginDetails == true) {
-      prefs.setString('host_url', urlController.text);
-      prefs.setString('user_login', loginController.text);
-      prefs.setString('user_password', passwordController.text);
-    }
+    getUserData.then((userData){
+      currentUser = userData;
 
-    hostURL = urlController.text;
-    userLogin = loginController.text;
-    userPassword = passwordController.text;
-    isLoggedIn = true;
+      if (saveLoginDetails == true) {
+        prefs.setString('host_url', urlController.text);
+        prefs.setString('user_login', loginController.text);
+        prefs.setString('user_password', passwordController.text);
+      }
 
-    notifyListeners();
+      hostURL = urlController.text;
+      userLogin = loginController.text;
+      userPassword = passwordController.text;
+      isLoggedIn = true;
+
+      toggleLoading(false);
+      notifyListeners();
+      showAlertMessage('You have successfully logged in', 1);
+    }).catchError((error) {
+      toggleLoading(false);
+      showAlertMessage('Unable to login', 0);
+    });
   }
 }
 
@@ -163,6 +166,7 @@ class _MainPageState extends State<MainPage> {
     bool loadingProcess = appState.loadingProcess;
     bool showAlert = appState.showAlert;
 
+    int showPageID = appState.showPageID;
     String alertMessage = appState.alertMessage;
 
     switch (_selectedIndex) {
@@ -223,7 +227,7 @@ class _MainPageState extends State<MainPage> {
             child: const Text('OK'),
             onPressed: () {
               setState(() {
-                _selectedIndex = 1;
+                _selectedIndex = showPageID;
               });
             },
           ),
