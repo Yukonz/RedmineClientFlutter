@@ -95,19 +95,21 @@ class RedmineClientState extends ChangeNotifier {
     showAlert = true;
     alertMessage = message;
     showPageID = pageID;
+
     notifyListeners();
   }
 
   Future<void> logout() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
+
     prefs.setString('user_password', "");
     prefs.setBool('last_login_success', false);
+
     userPassword = '';
     isLoggedIn = false;
     isTasksLoaded = false;
 
     showAlertMessage('You have logged out', 0);
-
     notifyListeners();
   }
 
@@ -294,25 +296,27 @@ class _MainPageState extends State<MainPage> {
     if (showAlert) {
       appState.showAlert = false;
 
-      return AlertDialog(
-        title: const Text("Information"),
-        content: Text(alertMessage),
-        actions: <Widget>[
-          TextButton(
-            child: const Text('OK'),
-            onPressed: () {
-              setState(() {
-                _selectedIndex = showPageID;
-              });
-            },
-          ),
-        ],
-      );
+      return Container(
+          color: Colors.white,
+          child: AlertDialog(
+            title: const Text("Information"),
+            content: Text(alertMessage),
+            actions: <Widget>[
+              TextButton(
+                child: const Text('OK'),
+                onPressed: () {
+                  setState(() {
+                    _selectedIndex = showPageID;
+                  });
+                },
+              ),
+            ],
+          ));
     } else if (loadingProcess) {
       return Scaffold(
-        backgroundColor: Colors.amberAccent,
+        backgroundColor: Color.fromRGBO(0, 128, 255, 1),
         body: Center(
-          child: LoadingAnimationWidget.inkDrop(
+          child: LoadingAnimationWidget.beat(
             color: Colors.white,
             size: 75,
           ),
