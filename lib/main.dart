@@ -31,6 +31,7 @@ class RedmineClientState extends ChangeNotifier {
   int showPageID = 0;
 
   bool isLoggedIn = false;
+  bool isTasksLoaded = false;
   bool loadingProcess = false;
   bool showAlert = false;
   bool? saveLoginDetails = false;
@@ -46,6 +47,7 @@ class RedmineClientState extends ChangeNotifier {
   TextEditingController passwordController = TextEditingController();
 
   late Future<User> currentUser;
+  late Future<List> userTasks;
 
   RedmineClientState() {
     autoLogIn();
@@ -58,7 +60,9 @@ class RedmineClientState extends ChangeNotifier {
     final String? savedUserPassword = prefs.getString('user_password');
     final bool? lastLoginSuccess = prefs.getBool('last_login_success');
 
-    if (savedHostURL != null && savedUserLogin != null && savedUserPassword != null) {
+    if (savedHostURL != null &&
+        savedUserLogin != null &&
+        savedUserPassword != null) {
       hostURL = savedHostURL;
       userLogin = savedUserLogin;
       userPassword = savedUserPassword;
@@ -82,14 +86,12 @@ class RedmineClientState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void toggleLoading(bool loadingAnimation)
-  {
+  void toggleLoading(bool loadingAnimation) {
     loadingProcess = loadingAnimation;
     notifyListeners();
   }
 
-  void showAlertMessage(String message, int pageID)
-  {
+  void showAlertMessage(String message, int pageID) {
     showAlert = true;
     alertMessage = message;
     showPageID = pageID;
@@ -102,6 +104,7 @@ class RedmineClientState extends ChangeNotifier {
     prefs.setBool('last_login_success', false);
     userPassword = '';
     isLoggedIn = false;
+    isTasksLoaded = false;
 
     showAlertMessage('You have logged out', 0);
 
@@ -113,17 +116,20 @@ class RedmineClientState extends ChangeNotifier {
 
     toggleLoading(true);
 
-    ApiController apiController = ApiController(hostURL: urlController.text, login: loginController.text, password: passwordController.text);
+    if (saveLoginDetails == true) {
+      prefs.setString('host_url', urlController.text);
+      prefs.setString('user_login', loginController.text);
+      prefs.setString('user_password', passwordController.text);
+    }
+
+    ApiController apiController = ApiController(
+        hostURL: urlController.text,
+        login: loginController.text,
+        password: passwordController.text);
 
     currentUser = apiController.getCurrentUser();
 
-    currentUser.then((userData){
-      if (saveLoginDetails == true) {
-        prefs.setString('host_url', urlController.text);
-        prefs.setString('user_login', loginController.text);
-        prefs.setString('user_password', passwordController.text);
-      }
-
+    currentUser.then((userData) {
       prefs.setBool('last_login_success', true);
 
       hostURL = urlController.text;
@@ -134,14 +140,31 @@ class RedmineClientState extends ChangeNotifier {
       toggleLoading(false);
       notifyListeners();
       showAlertMessage('You have successfully logged into account', 1);
-
-      apiController.getAssignedTasks();
-
     }).catchError((error) {
       prefs.setBool('last_login_success', false);
 
       toggleLoading(false);
-      showAlertMessage('Unable to login', 0);
+      showAlertMessage('Unable to login: $error', 0);
+    });
+  }
+
+  Future<void> getTasks() async {
+    ApiController apiController = ApiController(
+        hostURL: urlController.text,
+        login: loginController.text,
+        password: passwordController.text);
+
+    toggleLoading(true);
+
+    userTasks = apiController.getAssignedTasks();
+
+    userTasks.then((userData) {
+      toggleLoading(false);
+      isTasksLoaded = true;
+      notifyListeners();
+    }).catchError((error) {
+      toggleLoading(false);
+      showAlertMessage('Unable to login: $error', 0);
     });
   }
 }
@@ -164,8 +187,7 @@ class _MainPageState extends State<MainPage> {
     });
   }
 
-  void showTasksPage()
-  {
+  void showTasksPage() {
     setState(() {
       _selectedIndex = 1;
     });
@@ -200,12 +222,11 @@ class _MainPageState extends State<MainPage> {
         throw UnimplementedError('No page added for $_selectedIndex');
     }
 
-    const userDetailsTextStyle = TextStyle(fontSize: 20, color: Colors.white);
+    const userDetailsTextStyle = TextStyle(fontSize: 18, color: Colors.white);
 
     List<String> mainMenuItems = ['User Account', 'My Tasks', 'About'];
 
-    List<Widget> mainMenuWidgets(List<String> mainMenuItems)
-    {
+    List<Widget> mainMenuWidgets(List<String> mainMenuItems) {
       List<Widget> list = <Widget>[];
       List<Widget> headerContent = <Widget>[];
 
@@ -222,8 +243,7 @@ class _MainPageState extends State<MainPage> {
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                         textStyle: const TextStyle(fontSize: 18),
-                        padding: const EdgeInsets.fromLTRB(20, 10, 20, 10)
-                    ),
+                        padding: const EdgeInsets.fromLTRB(20, 10, 20, 10)),
                     child: const Text('Logout'),
                     onPressed: () {
                       appState.logout();
@@ -240,20 +260,21 @@ class _MainPageState extends State<MainPage> {
           ),
         );
       } else {
-        headerContent.add(const Text(
-          'Main Menu',
-          style: TextStyle(color: Colors.white),
-        ),);
+        headerContent.add(
+          const Text(
+            'Main Menu',
+            style: TextStyle(color: Colors.white),
+          ),
+        );
       }
 
       list.add(DrawerHeader(
-        decoration: const BoxDecoration(
-          color: Colors.blue,
-        ),
-        child: Column(children: headerContent)
-      ));
+          decoration: const BoxDecoration(
+            color: Colors.blue,
+          ),
+          child: Column(children: headerContent)));
 
-      for(var i = 0; i < mainMenuItems.length; i++){
+      for (var i = 0; i < mainMenuItems.length; i++) {
         list.add(
           ListTile(
             title: Text(mainMenuItems[i]),
@@ -322,26 +343,146 @@ class TasksPage extends StatefulWidget {
 }
 
 class _TasksPageState extends State<TasksPage> {
-  static const TextStyle optionStyle = TextStyle(fontSize: 30, fontWeight: FontWeight.bold);
+  static const mainTextColor = Color.fromRGBO(51, 64, 84, 1);
+  static const TextStyle nameCellStyle = TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: mainTextColor);
+  static const TextStyle valueCellStyle = TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: mainTextColor);
+  static const TextStyle titleTextStyle = TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: mainTextColor);
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'My Tasks',
-                style: optionStyle,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
+    var appState = context.watch<RedmineClientState>();
+
+    Widget tasksListContent = const SizedBox();
+
+    Widget taskListHeading = Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(5.0),
+          color: const Color.fromRGBO(247, 250, 250, 1),
+        ),
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 5, vertical: 5),
+          child: Text('My Tasks', style: titleTextStyle),
+        ));
+
+    if (appState.isLoggedIn) {
+      if (appState.isTasksLoaded) {
+        tasksListContent = FutureBuilder<List<dynamic>?>(
+            future: appState.userTasks,
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) {
+                return const Text('My Tasks', style: titleTextStyle);
+              } else {
+                List<TableRow> tableRows = <TableRow>[];
+
+                for (var i = 0; i < snapshot.data!.length; i++) {
+                  tableRows.add(TableRow(children: [
+                    TableCell(
+                        child: Table(
+                            border: const TableBorder(bottom: BorderSide()),
+                            columnWidths: const <int, TableColumnWidth>{
+                              0: FlexColumnWidth(25),
+                              1: FlexColumnWidth(75),
+                            },
+                            defaultVerticalAlignment:
+                                TableCellVerticalAlignment.middle,
+                            children: [
+                              TableRow(children: [
+                                const TableCell(
+                                  child: Padding(
+                                    padding: EdgeInsets.all(5.0),
+                                    child: Text('ID:', style: nameCellStyle),
+                                  )
+                                ),
+                                TableCell(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(5.0),
+                                      child: Text('${snapshot.data![i].id}', style: valueCellStyle),
+                                    )
+                                ),
+                              ]),
+                              TableRow(children: [
+                                const TableCell(
+                                    child: Padding(
+                                      padding: EdgeInsets.all(5.0),
+                                      child: Text('Subject:', style: nameCellStyle),
+                                    )
+                                ),
+                                TableCell(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(5.0),
+                                      child: Text(snapshot.data![i].subject, style: valueCellStyle),
+                                    )
+                                ),
+                              ]),
+                              TableRow(children: [
+                                const TableCell(
+                                    child: Padding(
+                                      padding: EdgeInsets.all(5.0),
+                                      child: Text('Author:', style: nameCellStyle),
+                                    )
+                                ),
+                                TableCell(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(5.0),
+                                      child: Text(snapshot.data![i].author, style: valueCellStyle),
+                                    )
+                                ),
+                              ]),
+                              TableRow(children: [
+                                const TableCell(
+                                    child: Padding(
+                                      padding: EdgeInsets.all(5.0),
+                                      child: Text('Date:', style: nameCellStyle),
+                                    )
+                                ),
+                                TableCell(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(5.0),
+                                    child: Text(snapshot.data![i].dateCreated, style: valueCellStyle),
+                                  )
+                                ),
+                              ]),
+                            ]))
+                  ]));
+                }
+
+                return Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+                    child: Column(children: [
+                      taskListHeading,
+                      Expanded(
+                          child: SingleChildScrollView(
+                              child: Table(
+                                  columnWidths: const <int, TableColumnWidth>{
+                                    0: FlexColumnWidth(25),
+                                    1: FlexColumnWidth(75),
+                                  }, defaultVerticalAlignment:
+                                    TableCellVerticalAlignment.middle,
+                                    children: tableRows
+                              )
+                          )
+                      )
+                    ]));
+              }
+            });
+      } else {
+        appState.getTasks();
+      }
+    }
+
+    if (!appState.isLoggedIn || !appState.isTasksLoaded) {
+      tasksListContent = Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+          child: Column(children: [
+            taskListHeading,
+            const SizedBox(height: 150.0),
+            const CircularProgressIndicator()
+          ]));
+    }
+
+    return tasksListContent;
   }
 }
 
@@ -353,10 +494,20 @@ class AboutPage extends StatefulWidget {
 }
 
 class _AboutPageState extends State<AboutPage> {
-  static const TextStyle optionStyle = TextStyle(fontSize: 30, fontWeight: FontWeight.bold);
+  static const TextStyle optionStyle =
+      TextStyle(fontSize: 30, fontWeight: FontWeight.bold);
 
   @override
   Widget build(BuildContext context) {
+    var appState = context.watch<RedmineClientState>();
+
+    ApiController apiController = ApiController(
+        hostURL: appState.hostURL,
+        login: appState.userLogin,
+        password: appState.userPassword);
+
+    if (appState.isLoggedIn == true) {}
+
     return const Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -385,14 +536,12 @@ class AccountPage extends StatefulWidget {
 
 class _AccountPageState extends State<AccountPage> {
   final _formKey = GlobalKey<FormState>();
-  final ButtonStyle loginBtnStyle =
-  ElevatedButton.styleFrom(
-      textStyle: const TextStyle(fontSize: 26),
-      padding: const EdgeInsets.fromLTRB(20, 10, 20, 10)
-  );
 
-  Widget loginForm()
-  {
+  final ButtonStyle loginBtnStyle = ElevatedButton.styleFrom(
+      textStyle: const TextStyle(fontSize: 26),
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 10));
+
+  Widget loginForm() {
     var appState = context.watch<RedmineClientState>();
 
     bool? saveLoginDetails = appState.saveLoginDetails;
@@ -411,13 +560,11 @@ class _AccountPageState extends State<AccountPage> {
             children: [
               Padding(
                 padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 child: TextFormField(
                   controller: urlController,
                   decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      labelText: "Host URL"
-                  ),
+                      border: OutlineInputBorder(), labelText: "Host URL"),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter host URL';
@@ -428,13 +575,11 @@ class _AccountPageState extends State<AccountPage> {
               ),
               Padding(
                 padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 child: TextFormField(
                   controller: loginController,
                   decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      labelText: "Login"
-                  ),
+                      border: OutlineInputBorder(), labelText: "Login"),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your Login';
@@ -445,15 +590,13 @@ class _AccountPageState extends State<AccountPage> {
               ),
               Padding(
                 padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 child: TextFormField(
                   autofocus: true,
                   controller: passwordController,
                   obscureText: true,
                   decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      labelText: "Password"
-                  ),
+                      border: OutlineInputBorder(), labelText: "Password"),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your Password';
@@ -462,16 +605,14 @@ class _AccountPageState extends State<AccountPage> {
                   },
                 ),
               ),
-
               Padding(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                child: Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.blue),
-                  ),
-                  child:
-                    CheckboxListTile(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.blue),
+                    ),
+                    child: CheckboxListTile(
                       title: const Text('Save Login Details'),
                       controlAffinity: ListTileControlAffinity.leading,
                       value: saveLoginDetails,
@@ -479,11 +620,10 @@ class _AccountPageState extends State<AccountPage> {
                         appState.setSaveLoginOption(newValue);
                       },
                     ),
-                )
-              ),
+                  )),
               Padding(
                 padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 child: Center(
                   child: ElevatedButton(
                     onPressed: () {

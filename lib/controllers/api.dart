@@ -25,7 +25,7 @@ class ApiController {
     if (response.statusCode == 200) {
       return User.fromJson(jsonDecode(response.body));
     } else {
-      throw Exception('Failed to get user details');
+      throw Exception('${response.statusCode}');
     }
   }
 
