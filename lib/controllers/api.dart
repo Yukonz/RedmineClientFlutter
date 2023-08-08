@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:redmine_client/models/user.dart';
 import 'package:redmine_client/models/issue.dart';
+import 'package:redmine_client/models/issue_details.dart';
 
 class ApiController {
   final String hostURL;
@@ -38,15 +39,24 @@ class ApiController {
     if (response.statusCode == 200) {
       Map<String, dynamic> data = jsonDecode(response.body);
 
-      print(data['issues'][0]['category']['name']);
-
       for (var i = 0; i < data['issues'].length; i++) {
         myIssues.add(Issue.fromJson(data['issues'][i]));
       }
 
       return myIssues;
     } else {
-      throw Exception('Failed to get issues');
+      throw Exception('Failed to load issues');
+    }
+  }
+
+  Future<IssueDetails> getIssueDetails(int issueID) async {
+    final response = await http.get(Uri.parse('$hostURL/issues/$issueID.json'),
+        headers: <String, String>{'authorization': getAuthHeader()});
+
+    if (response.statusCode == 200) {
+      return IssueDetails.fromJson(jsonDecode(response.body));
+    } else {
+      throw Exception('${response.statusCode}');
     }
   }
 }

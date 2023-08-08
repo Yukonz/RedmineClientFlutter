@@ -156,17 +156,13 @@ class RedmineClientState extends ChangeNotifier {
         login: loginController.text,
         password: passwordController.text);
 
-    toggleLoading(true);
-
     userTasks = apiController.getAssignedTasks();
 
     userTasks.then((userData) {
-      toggleLoading(false);
       isTasksLoaded = true;
       notifyListeners();
     }).catchError((error) {
-      toggleLoading(false);
-      showAlertMessage('Unable to login: $error', 0);
+      showAlertMessage('Unable load tasks: $error', 0);
     });
   }
 }
@@ -312,7 +308,9 @@ class _MainPageState extends State<MainPage> {
               ),
             ],
           ));
-    } else if (loadingProcess) {
+    }
+
+    if (loadingProcess) {
       return Scaffold(
         backgroundColor: Color.fromRGBO(0, 128, 255, 1),
         body: Center(
@@ -322,20 +320,20 @@ class _MainPageState extends State<MainPage> {
           ),
         ),
       );
-    } else {
-      return Scaffold(
-        appBar: AppBar(title: Text(widget.title)),
-        body: Center(
-          child: currentPage,
-        ),
-        drawer: Drawer(
-          child: ListView(
-            padding: EdgeInsets.zero,
-            children: mainMenuWidgets(mainMenuItems),
-          ),
-        ),
-      );
     }
+
+    return Scaffold(
+      appBar: AppBar(title: Text(widget.title)),
+      body: Center(
+        child: currentPage,
+      ),
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: mainMenuWidgets(mainMenuItems),
+        ),
+      ),
+    );
   }
 }
 
