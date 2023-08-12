@@ -346,13 +346,19 @@ class TasksPage extends StatefulWidget {
 
 class _TasksPageState extends State<TasksPage> {
   static const mainTextColor = Color.fromRGBO(51, 64, 84, 1);
-  static const TextStyle nameCellStyle = TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: mainTextColor);
-  static const TextStyle valueCellStyle = TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: mainTextColor);
-  static const TextStyle titleTextStyle = TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: mainTextColor);
+  static const TextStyle nameCellStyle = TextStyle(
+      fontSize: 16, fontWeight: FontWeight.bold, color: mainTextColor);
+  static const TextStyle valueCellStyle = TextStyle(
+      fontSize: 16, fontWeight: FontWeight.normal, color: mainTextColor);
+  static const TextStyle titleTextStyle = TextStyle(
+      fontSize: 28, fontWeight: FontWeight.bold, color: mainTextColor);
 
   @override
   Widget build(BuildContext context) {
     var appState = context.watch<RedmineClientState>();
+
+    const EdgeInsets tasksCellPadding =
+        EdgeInsets.symmetric(vertical: 1, horizontal: 5);
 
     Widget tasksListContent = const SizedBox();
 
@@ -360,10 +366,10 @@ class _TasksPageState extends State<TasksPage> {
         width: double.infinity,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(5.0),
-          color: const Color.fromRGBO(247, 250, 250, 1),
+          color: const Color.fromRGBO(247, 246, 251, 1),
         ),
         child: const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 5, vertical: 5),
+          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           child: Text('My Tasks', style: titleTextStyle),
         ));
 
@@ -375,78 +381,118 @@ class _TasksPageState extends State<TasksPage> {
               if (!snapshot.hasData) {
                 return const Text('My Tasks', style: titleTextStyle);
               } else {
-                List<TableRow> tableRows = <TableRow>[];
+                List<Card> taskCards = <Card>[];
 
                 for (var i = 0; i < snapshot.data!.length; i++) {
-                  tableRows.add(TableRow(children: [
-                    TableCell(
-                        child: Table(
-                            border: const TableBorder(bottom: BorderSide()),
-                            columnWidths: const <int, TableColumnWidth>{
-                              0: FlexColumnWidth(25),
-                              1: FlexColumnWidth(75),
-                            },
-                            defaultVerticalAlignment:
-                                TableCellVerticalAlignment.middle,
-                            children: [
-                              TableRow(children: [
-                                const TableCell(
-                                  child: Padding(
-                                    padding: EdgeInsets.all(5.0),
-                                    child: Text('ID:', style: nameCellStyle),
+                  Color cardBorderColor = Colors.white;
+
+                  switch (snapshot.data![i].priority) {
+                    case 'Urgent':
+                      cardBorderColor = const Color.fromRGBO(255, 16, 102, 1);
+                    case 'High':
+                      cardBorderColor = const Color.fromRGBO(0, 224, 152, 1);
+                    case 'Normal':
+                      cardBorderColor = const Color.fromRGBO(215, 221, 230, 1);
+                    case 'Low':
+                      cardBorderColor = const Color.fromRGBO(0, 128, 255, 1);
+                  }
+
+                  taskCards.add(Card(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(7.5),
+                      ),
+                      color: Colors.white,
+                      clipBehavior: Clip.hardEdge,
+                      margin: const EdgeInsets.symmetric(vertical: 7.5),
+                      child: ClipPath(
+                          child: Container(
+                              padding: const EdgeInsets.all(5),
+                              decoration: BoxDecoration(
+                                border: Border(
+                                  left: BorderSide(
+                                      color: cardBorderColor, width: 6),
+                                ),
+                              ),
+                              child: InkWell(
+                                  onTap: () {
+                                    print(snapshot.data![i].id);
+                                  },
+                                  child: Table(
+                                      columnWidths: const <int,
+                                          TableColumnWidth>{
+                                        0: FlexColumnWidth(25),
+                                        1: FlexColumnWidth(75),
+                                      },
+                                      defaultVerticalAlignment:
+                                          TableCellVerticalAlignment.middle,
+                                      children: [
+                                        TableRow(children: [
+                                          const TableCell(
+                                              child: Padding(
+                                            padding: tasksCellPadding,
+                                            child: Text('ID:',
+                                                style: nameCellStyle),
+                                          )),
+                                          TableCell(
+                                              child: Padding(
+                                            padding: tasksCellPadding,
+                                            child: Text(
+                                                '${snapshot.data![i].id}',
+                                                style: valueCellStyle),
+                                          )),
+                                        ]),
+                                        TableRow(children: [
+                                          const TableCell(
+                                              child: Padding(
+                                            padding: EdgeInsets.all(5.0),
+                                            child: Text('Subject:',
+                                                style: nameCellStyle),
+                                          )),
+                                          TableCell(
+                                              child: Padding(
+                                            padding: tasksCellPadding,
+                                            child: Text(
+                                                snapshot.data![i].subject,
+                                                style: valueCellStyle),
+                                          )),
+                                        ]),
+                                        TableRow(children: [
+                                          const TableCell(
+                                              child: Padding(
+                                            padding: EdgeInsets.all(5.0),
+                                            child: Text('Author:',
+                                                style: nameCellStyle),
+                                          )),
+                                          TableCell(
+                                              child: Padding(
+                                            padding: tasksCellPadding,
+                                            child: Text(
+                                                snapshot.data![i].author,
+                                                style: valueCellStyle),
+                                          )),
+                                        ]),
+                                        TableRow(children: [
+                                          const TableCell(
+                                              child: Padding(
+                                            padding: EdgeInsets.all(5.0),
+                                            child: Text('Date:',
+                                                style: nameCellStyle),
+                                          )),
+                                          TableCell(
+                                              child: Padding(
+                                            padding: tasksCellPadding,
+                                            child: Text(
+                                                snapshot.data![i].dateCreated,
+                                                style: valueCellStyle),
+                                          )),
+                                        ]),
+                                      ]
                                   )
-                                ),
-                                TableCell(
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(5.0),
-                                      child: Text('${snapshot.data![i].id}', style: valueCellStyle),
-                                    )
-                                ),
-                              ]),
-                              TableRow(children: [
-                                const TableCell(
-                                    child: Padding(
-                                      padding: EdgeInsets.all(5.0),
-                                      child: Text('Subject:', style: nameCellStyle),
-                                    )
-                                ),
-                                TableCell(
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(5.0),
-                                      child: Text(snapshot.data![i].subject, style: valueCellStyle),
-                                    )
-                                ),
-                              ]),
-                              TableRow(children: [
-                                const TableCell(
-                                    child: Padding(
-                                      padding: EdgeInsets.all(5.0),
-                                      child: Text('Author:', style: nameCellStyle),
-                                    )
-                                ),
-                                TableCell(
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(5.0),
-                                      child: Text(snapshot.data![i].author, style: valueCellStyle),
-                                    )
-                                ),
-                              ]),
-                              TableRow(children: [
-                                const TableCell(
-                                    child: Padding(
-                                      padding: EdgeInsets.all(5.0),
-                                      child: Text('Date:', style: nameCellStyle),
-                                    )
-                                ),
-                                TableCell(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(5.0),
-                                    child: Text(snapshot.data![i].dateCreated, style: valueCellStyle),
-                                  )
-                                ),
-                              ]),
-                            ]))
-                  ]));
+                              )
+                          )
+                      )
+                    )
+                  );
                 }
 
                 return Padding(
@@ -454,18 +500,7 @@ class _TasksPageState extends State<TasksPage> {
                         const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
                     child: Column(children: [
                       taskListHeading,
-                      Expanded(
-                          child: SingleChildScrollView(
-                              child: Table(
-                                  columnWidths: const <int, TableColumnWidth>{
-                                    0: FlexColumnWidth(25),
-                                    1: FlexColumnWidth(75),
-                                  }, defaultVerticalAlignment:
-                                    TableCellVerticalAlignment.middle,
-                                    children: tableRows
-                              )
-                          )
-                      )
+                      Expanded(child: ListView(children: taskCards))
                     ]));
               }
             });
