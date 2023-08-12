@@ -28,17 +28,17 @@ class Attachment {
 
   factory Attachment.fromJson(Map<String, dynamic> json) {
     return Attachment(
-      id:           json['id'],
-      authorId:     json['author']['id'],
-      fileSize:     json['filesize'],
-      fileName:     json['firstname'],
-      contentType:  json['content_type'],
-      description:  json['description'],
-      contentUrl:   json['content_url'],
-      hrefUrl:      json['href_url'],
-      thumbnailUrl: json['thumbnail_url'],
-      authorName:   json['author']['name'],
-      dateCreated:  json['created_on'],
+      id:           json['id']             ?? 0,
+      authorId:     json['author']['id']   ?? 0,
+      fileSize:     json['filesize']       ?? '',
+      fileName:     json['filename']       ?? '',
+      contentType:  json['content_type']   ?? '',
+      description:  json['description']    ?? '',
+      contentUrl:   json['content_url']    ?? '',
+      hrefUrl:      json['href_url']       ?? '',
+      thumbnailUrl: json['thumbnail_url']  ?? '',
+      authorName:   json['author']['name'] ?? '',
+      dateCreated:  json['created_on']     ?? '',
     );
   }
 }

@@ -50,7 +50,7 @@ class ApiController {
   }
 
   Future<IssueDetails> getIssueDetails(int issueID) async {
-    final response = await http.get(Uri.parse('$hostURL/issues/$issueID.json'),
+    final response = await http.get(Uri.parse('$hostURL/issues/$issueID.json?include=attachments,journals'),
         headers: <String, String>{'authorization': getAuthHeader()});
 
     if (response.statusCode == 200) {

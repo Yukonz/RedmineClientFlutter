@@ -38,7 +38,7 @@ dependencies:
   loading_animation_widget:
   shared_preferences:
   provider:
-  http: ^1.1.0
+  http:
 
 dev_dependencies:
   flutter_test:

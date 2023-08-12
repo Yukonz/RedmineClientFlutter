@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:redmine_client/models/user.dart';
+import 'package:redmine_client/models/issue_details.dart';
 import 'package:redmine_client/controllers/api.dart';
 
 void main() {
@@ -31,9 +32,13 @@ class RedmineClientState extends ChangeNotifier {
   int showPageID = 0;
 
   bool isLoggedIn = false;
+
   bool isTasksLoaded = false;
+  bool isTaskDetailsLoaded = false;
+
   bool loadingProcess = false;
   bool showAlert = false;
+
   bool? saveLoginDetails = false;
 
   String hostURL = '';
@@ -48,6 +53,7 @@ class RedmineClientState extends ChangeNotifier {
 
   late Future<User> currentUser;
   late Future<List> userTasks;
+  late Future<IssueDetails> taskDetails;
 
   RedmineClientState() {
     autoLogIn();
@@ -99,6 +105,12 @@ class RedmineClientState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void backToTasksList()
+  {
+    isTaskDetailsLoaded = false;
+    notifyListeners();
+  }
+
   Future<void> logout() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
 
@@ -108,6 +120,7 @@ class RedmineClientState extends ChangeNotifier {
     userPassword = '';
     isLoggedIn = false;
     isTasksLoaded = false;
+    isTaskDetailsLoaded = false;
 
     showAlertMessage('You have logged out', 0);
     notifyListeners();
@@ -125,9 +138,9 @@ class RedmineClientState extends ChangeNotifier {
     }
 
     ApiController apiController = ApiController(
-        hostURL: urlController.text,
-        login: loginController.text,
-        password: passwordController.text);
+        hostURL: hostURL,
+        login: userLogin,
+        password: userPassword);
 
     currentUser = apiController.getCurrentUser();
 
@@ -152,9 +165,9 @@ class RedmineClientState extends ChangeNotifier {
 
   Future<void> getTasks() async {
     ApiController apiController = ApiController(
-        hostURL: urlController.text,
-        login: loginController.text,
-        password: passwordController.text);
+        hostURL: hostURL,
+        login: userLogin,
+        password: userPassword);
 
     userTasks = apiController.getAssignedTasks();
 
@@ -162,8 +175,41 @@ class RedmineClientState extends ChangeNotifier {
       isTasksLoaded = true;
       notifyListeners();
     }).catchError((error) {
-      showAlertMessage('Unable load tasks: $error', 0);
+      showAlertMessage('Unable load tasks list: $error', 0);
     });
+  }
+
+  Future<void> getTaskDetails(int taskID) async {
+    ApiController apiController = ApiController(
+        hostURL: hostURL,
+        login: userLogin,
+        password: userPassword);
+
+    taskDetails = apiController.getIssueDetails(taskID);
+
+    taskDetails.then((userData) {
+      isTaskDetailsLoaded = true;
+      notifyListeners();
+    }).catchError((error) {
+      showAlertMessage('Unable load task details: $error', 1);
+    });
+  }
+
+  String removeAllHtmlTags(String htmlText) {
+    RegExp exp = RegExp(
+        r"<[^>]*>",
+        multiLine: true,
+        caseSensitive: true
+    );
+
+    return htmlText.replaceAll(exp, '');
+  }
+
+  String formatDate(String dateStr) {
+    String newStr = dateStr.replaceAll('T', ' ');
+    newStr = newStr.substring(0, newStr.length - 4);
+
+    return newStr;
   }
 }
 
@@ -282,6 +328,10 @@ class _MainPageState extends State<MainPage> {
               _onItemTapped(i);
               // Then close the drawer
               Navigator.pop(context);
+
+              if (appState.isTaskDetailsLoaded) {
+                appState.backToTasksList();
+              }
             },
           ),
         );
@@ -346,19 +396,51 @@ class TasksPage extends StatefulWidget {
 
 class _TasksPageState extends State<TasksPage> {
   static const mainTextColor = Color.fromRGBO(51, 64, 84, 1);
+
   static const TextStyle nameCellStyle = TextStyle(
-      fontSize: 16, fontWeight: FontWeight.bold, color: mainTextColor);
+      fontSize: 16,
+      fontWeight: FontWeight.bold,
+      color: mainTextColor
+  );
+
   static const TextStyle valueCellStyle = TextStyle(
-      fontSize: 16, fontWeight: FontWeight.normal, color: mainTextColor);
+      fontSize: 16,
+      fontWeight: FontWeight.normal,
+      color: mainTextColor
+  );
+
   static const TextStyle titleTextStyle = TextStyle(
-      fontSize: 28, fontWeight: FontWeight.bold, color: mainTextColor);
+      fontSize: 28,
+      fontWeight: FontWeight.bold,
+      color: mainTextColor
+  );
+
+  static const TextStyle taskTitleTextStyle = TextStyle(
+      fontSize: 20,
+      fontWeight: FontWeight.bold,
+      color: mainTextColor
+  );
+
+  static const TextStyle taskContentTextStyle = TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.normal,
+    color: mainTextColor
+  );
+
+  static const TextStyle taskInfoTextStyle = TextStyle(
+      fontSize: 16,
+      fontWeight: FontWeight.bold,
+      color: mainTextColor
+  );
 
   @override
   Widget build(BuildContext context) {
     var appState = context.watch<RedmineClientState>();
 
-    const EdgeInsets tasksCellPadding =
-        EdgeInsets.symmetric(vertical: 1, horizontal: 5);
+    const EdgeInsets tasksCellPadding = EdgeInsets.symmetric(
+        vertical: 1.0,
+        horizontal: 5.0
+    );
 
     Widget tasksListContent = const SizedBox();
 
@@ -368,12 +450,130 @@ class _TasksPageState extends State<TasksPage> {
           borderRadius: BorderRadius.circular(5.0),
           color: const Color.fromRGBO(247, 246, 251, 1),
         ),
-        child: const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          child: Text('My Tasks', style: titleTextStyle),
-        ));
+        child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            child: Row(children: [
+              const Text('My Tasks', style: titleTextStyle),
+              const Spacer(),
+              Visibility(
+                visible: appState.isTaskDetailsLoaded,
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  tooltip: 'Increase volume by 10',
+                  onPressed: () {
+                    appState.backToTasksList();
+                  },
+                ),
+              ),
+
+            ])));
 
     if (appState.isLoggedIn) {
+      if (appState.isTaskDetailsLoaded) {
+        return FutureBuilder<IssueDetails>(
+          future: appState.taskDetails,
+          builder: (context, snapshot) {
+            if (snapshot.hasData) {
+              Color cardBorderColor = Colors.white;
+
+              switch (snapshot.data!.priority) {
+                case 'Urgent':
+                  cardBorderColor = const Color.fromRGBO(255, 16, 102, 1);
+                case 'High':
+                  cardBorderColor = const Color.fromRGBO(0, 224, 152, 1);
+                case 'Normal':
+                  cardBorderColor = const Color.fromRGBO(215, 221, 230, 1);
+                case 'Low':
+                  cardBorderColor = const Color.fromRGBO(0, 128, 255, 1);
+              }
+
+              String taskDetails = appState.removeAllHtmlTags(snapshot.data!.description);
+              String taskDate = appState.formatDate(snapshot.data!.dateCreated);
+
+              List<Widget> taskJournals = <Widget>[];
+
+              for (var i = 0; i < snapshot.data!.journals.length; i++) {
+                String journalNotes = appState.removeAllHtmlTags(snapshot.data!.journals[i].notes);
+                String journalDate = appState.formatDate(snapshot.data!.journals[i].dateCreated);
+
+                taskJournals.add(Card(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(7.5),
+                    ),
+                    color: Colors.white,
+                    clipBehavior: Clip.hardEdge,
+                    margin: const EdgeInsets.symmetric(
+                        vertical: 10, horizontal: 0),
+                    child: Container(
+                        padding: const EdgeInsets.all(10),
+                      child: Column(children: [
+                      Text(journalNotes, style: taskContentTextStyle),
+                      const SizedBox(height: 15),
+                      Row(
+                        children: [
+                          Text(snapshot.data!.journals[i].authorName, style: taskInfoTextStyle),
+                          const Spacer(),
+                          Text(journalDate, style: taskInfoTextStyle),
+                        ],
+                      )
+                    ]))));
+              }
+
+              return Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+                  child: Column(children: [
+                    taskListHeading,
+                    Expanded(
+                        child: ListView(children: [
+                      Card(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(7.5),
+                          ),
+                          color: Colors.white,
+                          clipBehavior: Clip.hardEdge,
+                          margin: const EdgeInsets.symmetric(
+                              vertical: 10, horizontal: 0),
+                          child: ClipPath(
+                              child: Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    border: Border(
+                                      left: BorderSide(
+                                          color: cardBorderColor, width: 6),
+                                    ),
+                                  ),
+                                  child: Column(children: [
+                                    Text(
+                                        '#${snapshot.data!.id} - ${snapshot.data!.subject}',
+                                        style: taskTitleTextStyle),
+                                    const SizedBox(height: 10),
+                                    Text(taskDetails,
+                                        style: taskContentTextStyle),
+                                    const SizedBox(height: 15),
+                                    Row(
+                                      children: [
+                                        Text(snapshot.data!.author,
+                                            style: taskInfoTextStyle),
+                                        const Spacer(),
+                                        Text(taskDate,
+                                            style: taskInfoTextStyle),
+                                      ],
+                                    )
+                                  ])))),
+                      Column(children: taskJournals)
+                    ]))
+                  ]));
+            } else if (snapshot.hasError) {
+              return Text('${snapshot.error}');
+            }
+
+            // By default, show a loading spinner.
+            return const CircularProgressIndicator();
+          },
+        );
+      }
+
       if (appState.isTasksLoaded) {
         tasksListContent = FutureBuilder<List<dynamic>?>(
             future: appState.userTasks,
@@ -384,6 +584,7 @@ class _TasksPageState extends State<TasksPage> {
                 List<Card> taskCards = <Card>[];
 
                 for (var i = 0; i < snapshot.data!.length; i++) {
+                  String taskDate = appState.formatDate(snapshot.data![i].dateCreated);
                   Color cardBorderColor = Colors.white;
 
                   switch (snapshot.data![i].priority) {
@@ -415,7 +616,7 @@ class _TasksPageState extends State<TasksPage> {
                               ),
                               child: InkWell(
                                   onTap: () {
-                                    print(snapshot.data![i].id);
+                                    appState.getTaskDetails(snapshot.data![i].id);
                                   },
                                   child: Table(
                                       columnWidths: const <int,
@@ -482,7 +683,7 @@ class _TasksPageState extends State<TasksPage> {
                                               child: Padding(
                                             padding: tasksCellPadding,
                                             child: Text(
-                                                snapshot.data![i].dateCreated,
+                                                taskDate,
                                                 style: valueCellStyle),
                                           )),
                                         ]),

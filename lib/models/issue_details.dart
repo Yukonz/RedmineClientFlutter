@@ -23,22 +23,22 @@ class IssueDetails extends Issue {
     List<Attachment> issueAttachments = <Attachment>[];
     List<Journal> issueJournals = <Journal>[];
 
-    for (var i = 0; i < json['attachments'].length; i++) {
-      issueAttachments.add(Attachment.fromJson(json['attachments'][i]));
+    for (var i = 0; i < json['issue']['attachments'].length; i++) {
+      issueAttachments.add(Attachment.fromJson(json['issue']['attachments'][i]));
     }
 
-    for (var i = 0; i < json['journals'].length; i++) {
-      issueJournals.add(Journal.fromJson(json['journals'][i]));
+    for (var i = 0; i < json['issue']['journals'].length; i++) {
+      issueJournals.add(Journal.fromJson(json['issue']['journals'][i]));
     }
 
     return IssueDetails(
-      id:          json['id'],
-      priority:    json['priority']['name'],
-      author:      json['author']['name'],
-      assignedTo:  json['assigned_to']['name'],
-      subject:     json['subject'],
-      dateCreated: json['created_on'],
-      description: json['description'],
+      id:          json['issue']['id'],
+      priority:    json['issue']['priority']['name'],
+      author:      json['issue']['author']['name'],
+      assignedTo:  json['issue']['assigned_to']['name'],
+      subject:     json['issue']['subject'],
+      dateCreated: json['issue']['created_on'],
+      description: json['issue']['description'],
       journals:    issueJournals,
       attachments: issueAttachments,
     );
