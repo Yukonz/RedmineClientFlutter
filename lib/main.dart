@@ -30,6 +30,7 @@ class RedmineClient extends StatelessWidget {
 
 class RedmineClientState extends ChangeNotifier {
   int showPageID = 0;
+  int showTaskID = 0;
 
   bool isLoggedIn = false;
 
@@ -107,6 +108,7 @@ class RedmineClientState extends ChangeNotifier {
 
   void backToTasksList()
   {
+    showTaskID = 0;
     isTaskDetailsLoaded = false;
     notifyListeners();
   }
@@ -121,6 +123,7 @@ class RedmineClientState extends ChangeNotifier {
     isLoggedIn = false;
     isTasksLoaded = false;
     isTaskDetailsLoaded = false;
+    showTaskID = 0;
 
     showAlertMessage('You have logged out', 0);
     notifyListeners();
@@ -180,6 +183,10 @@ class RedmineClientState extends ChangeNotifier {
   }
 
   Future<void> getTaskDetails(int taskID) async {
+    showTaskID = taskID;
+
+    notifyListeners();
+
     ApiController apiController = ApiController(
         hostURL: hostURL,
         login: userLogin,
@@ -188,6 +195,7 @@ class RedmineClientState extends ChangeNotifier {
     taskDetails = apiController.getIssueDetails(taskID);
 
     taskDetails.then((userData) {
+      showTaskID = 0;
       isTaskDetailsLoaded = true;
       notifyListeners();
     }).catchError((error) {
@@ -710,7 +718,8 @@ class _TasksPageState extends State<TasksPage> {
       }
     }
 
-    if (!appState.isLoggedIn || !appState.isTasksLoaded) {
+    if (!appState.isLoggedIn || !appState.isTasksLoaded ||
+        (appState.showTaskID != 0 && !appState.isTaskDetailsLoaded)) {
       tasksListContent = Padding(
           padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
           child: Column(children: [
