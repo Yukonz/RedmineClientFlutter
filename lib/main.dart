@@ -277,6 +277,8 @@ class _MainPageState extends State<MainPage> {
 
     const userDetailsTextStyle = TextStyle(fontSize: 18, color: Colors.white);
 
+    double drawerHeadingHeight = 100;
+
     List<String> mainMenuItems = ['User Account', 'My Tasks', 'About'];
 
     List<Widget> mainMenuWidgets(List<String> mainMenuItems) {
@@ -284,6 +286,8 @@ class _MainPageState extends State<MainPage> {
       List<Widget> headerContent = <Widget>[];
 
       if (isLoggedIn) {
+        drawerHeadingHeight = 275;
+
         headerContent.add(
           FutureBuilder<User>(
             future: currentUser,
@@ -328,7 +332,7 @@ class _MainPageState extends State<MainPage> {
       }
 
       list.add(SizedBox(
-          height: 250,
+          height: drawerHeadingHeight,
           child: DrawerHeader(
               decoration: const BoxDecoration(
                 color: Colors.blue,
