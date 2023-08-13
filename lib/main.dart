@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:redmine_client/models/user.dart';
 import 'package:redmine_client/models/issue_details.dart';
 import 'package:redmine_client/controllers/api.dart';
+import 'package:syncfusion_flutter_charts/charts.dart';
 
 void main() {
   runApp(const RedmineClient());
@@ -405,6 +406,13 @@ class TasksPage extends StatefulWidget {
 class _TasksPageState extends State<TasksPage> {
   static const mainTextColor = Color.fromRGBO(51, 64, 84, 1);
 
+  Color colorUrgent = const Color.fromRGBO(255, 16, 102, 1);
+  Color colorHigh = const Color.fromRGBO(0, 224, 152, 1);
+  Color colorNormal = const Color.fromRGBO(215, 221, 230, 1);
+  Color colorLow = const Color.fromRGBO(0, 128, 255, 1);
+
+  List<_ChartData> chartData = <_ChartData>[];
+
   static const TextStyle nameCellStyle = TextStyle(
       fontSize: 16,
       fontWeight: FontWeight.bold,
@@ -440,6 +448,11 @@ class _TasksPageState extends State<TasksPage> {
       fontWeight: FontWeight.bold,
       color: mainTextColor
   );
+
+  int tasksNumberUrgent = 0;
+  int tasksNumberHigh = 0;
+  int tasksNumberNormal = 0;
+  int tasksNumberLow = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -486,13 +499,13 @@ class _TasksPageState extends State<TasksPage> {
 
               switch (snapshot.data!.priority) {
                 case 'Urgent':
-                  cardBorderColor = const Color.fromRGBO(255, 16, 102, 1);
+                  cardBorderColor = colorUrgent;
                 case 'High':
-                  cardBorderColor = const Color.fromRGBO(0, 224, 152, 1);
+                  cardBorderColor = colorHigh;
                 case 'Normal':
-                  cardBorderColor = const Color.fromRGBO(215, 221, 230, 1);
+                  cardBorderColor = colorNormal;
                 case 'Low':
-                  cardBorderColor = const Color.fromRGBO(0, 128, 255, 1);
+                  cardBorderColor = colorLow;
               }
 
               String taskDetails = appState.removeAllHtmlTags(snapshot.data!.description);
@@ -597,14 +610,25 @@ class _TasksPageState extends State<TasksPage> {
 
                   switch (snapshot.data![i].priority) {
                     case 'Urgent':
-                      cardBorderColor = const Color.fromRGBO(255, 16, 102, 1);
+                      tasksNumberUrgent++;
+                      cardBorderColor = colorUrgent;
                     case 'High':
-                      cardBorderColor = const Color.fromRGBO(0, 224, 152, 1);
+                      tasksNumberHigh++;
+                      cardBorderColor = colorHigh;
                     case 'Normal':
-                      cardBorderColor = const Color.fromRGBO(215, 221, 230, 1);
+                      tasksNumberNormal++;
+                      cardBorderColor = colorNormal;
                     case 'Low':
-                      cardBorderColor = const Color.fromRGBO(0, 128, 255, 1);
+                      tasksNumberLow++;
+                      cardBorderColor = colorLow;
                   }
+
+                  chartData = [
+                    _ChartData('Urgent', tasksNumberUrgent, colorUrgent),
+                    _ChartData('High', tasksNumberHigh, colorHigh),
+                    _ChartData('Normal', tasksNumberNormal, colorNormal),
+                    _ChartData('Low', tasksNumberLow, colorLow)
+                  ];
 
                   taskCards.add(Card(
                       shape: RoundedRectangleBorder(
@@ -709,6 +733,22 @@ class _TasksPageState extends State<TasksPage> {
                         const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
                     child: Column(children: [
                       taskListHeading,
+                      Container(
+                          height: 150,
+                          child: SfCircularChart(
+                              tooltipBehavior: TooltipBehavior(enable: true),
+                              legend: const Legend(isVisible: true),
+                              series: [
+                                DoughnutSeries<_ChartData, String>(
+                                    dataSource: chartData,
+                                    pointColorMapper: (_ChartData data, _) =>
+                                        data.color,
+                                    xValueMapper: (_ChartData data, _) =>
+                                        '${data.x}: ${data.y}',
+                                    yValueMapper: (_ChartData data, _) =>
+                                        data.y,
+                                    name: 'Tasks')
+                              ])),
                       Expanded(child: ListView(children: taskCards))
                     ]));
               }
@@ -898,4 +938,12 @@ class _AccountPageState extends State<AccountPage> {
   Widget build(BuildContext context) {
     return loginForm();
   }
+}
+
+class _ChartData {
+  _ChartData(this.x, this.y, this.color);
+
+  final String x;
+  final int y;
+  final Color color;
 }

@@ -39,6 +39,7 @@ dependencies:
   shared_preferences:
   provider:
   http:
+  syncfusion_flutter_charts:
 
 dev_dependencies:
   flutter_test:
