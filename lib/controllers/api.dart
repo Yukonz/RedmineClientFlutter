@@ -20,7 +20,7 @@ class ApiController {
   }
 
   Future<User> getCurrentUser() async {
-    final response = await http.get(Uri.parse('$hostURL/my/account.json'),
+    final response = await http.get(Uri.parse('$hostURL/users/current.json'),
         headers: <String, String>{'authorization': getAuthHeader()});
 
     if (response.statusCode == 200) {

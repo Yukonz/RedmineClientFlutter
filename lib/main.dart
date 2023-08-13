@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:syncfusion_flutter_charts/charts.dart';
+
 import 'package:redmine_client/models/user.dart';
 import 'package:redmine_client/models/issue_details.dart';
 import 'package:redmine_client/controllers/api.dart';
-import 'package:syncfusion_flutter_charts/charts.dart';
 
 void main() {
   runApp(const RedmineClient());
@@ -40,8 +41,6 @@ class RedmineClientState extends ChangeNotifier {
 
   bool loadingProcess = false;
   bool showAlert = false;
-
-  bool? saveLoginDetails = false;
 
   String hostURL = '';
   String userLogin = '';
@@ -90,7 +89,6 @@ class RedmineClientState extends ChangeNotifier {
   }
 
   void setSaveLoginOption(bool? saveLogin) async {
-    saveLoginDetails = saveLogin;
     notifyListeners();
   }
 
@@ -135,11 +133,13 @@ class RedmineClientState extends ChangeNotifier {
 
     toggleLoading(true);
 
-    if (saveLoginDetails == true) {
-      prefs.setString('host_url', urlController.text);
-      prefs.setString('user_login', loginController.text);
-      prefs.setString('user_password', passwordController.text);
-    }
+    hostURL = urlController.text;
+    userLogin = loginController.text;
+    userPassword = passwordController.text;
+
+    prefs.setString('host_url', urlController.text);
+    prefs.setString('user_login', loginController.text);
+    prefs.setString('user_password', passwordController.text);
 
     ApiController apiController = ApiController(
         hostURL: hostURL,
@@ -290,7 +290,13 @@ class _MainPageState extends State<MainPage> {
             builder: (context, snapshot) {
               if (snapshot.hasData) {
                 return Column(children: [
-                  Text(snapshot.data!.login, style: userDetailsTextStyle),
+                  CircleAvatar(
+                    backgroundImage: NetworkImage(snapshot.data!.avatarUrl),
+                    maxRadius: 30,
+                    minRadius: 30,
+                  ),
+                  const SizedBox(height: 10.0),
+                  Text('${snapshot.data!.firstName} ${snapshot.data!.lastName}', style: userDetailsTextStyle),
                   Text(snapshot.data!.email, style: userDetailsTextStyle),
                   const SizedBox(height: 10.0),
                   ElevatedButton(
@@ -321,11 +327,13 @@ class _MainPageState extends State<MainPage> {
         );
       }
 
-      list.add(DrawerHeader(
-          decoration: const BoxDecoration(
-            color: Colors.blue,
-          ),
-          child: Column(children: headerContent)));
+      list.add(SizedBox(
+          height: 250,
+          child: DrawerHeader(
+              decoration: const BoxDecoration(
+                color: Colors.blue,
+              ),
+              child: Column(children: headerContent))));
 
       for (var i = 0; i < mainMenuItems.length; i++) {
         list.add(
@@ -411,8 +419,6 @@ class _TasksPageState extends State<TasksPage> {
   Color colorNormal = const Color.fromRGBO(215, 221, 230, 1);
   Color colorLow = const Color.fromRGBO(0, 128, 255, 1);
 
-  List<_ChartData> chartData = <_ChartData>[];
-
   static const TextStyle nameCellStyle = TextStyle(
       fontSize: 16,
       fontWeight: FontWeight.bold,
@@ -449,6 +455,11 @@ class _TasksPageState extends State<TasksPage> {
       color: mainTextColor
   );
 
+  static const EdgeInsets tasksCellPadding = EdgeInsets.symmetric(
+      vertical: 1.0,
+      horizontal: 5.0
+  );
+
   int tasksNumberUrgent = 0;
   int tasksNumberHigh = 0;
   int tasksNumberNormal = 0;
@@ -457,11 +468,6 @@ class _TasksPageState extends State<TasksPage> {
   @override
   Widget build(BuildContext context) {
     var appState = context.watch<RedmineClientState>();
-
-    const EdgeInsets tasksCellPadding = EdgeInsets.symmetric(
-        vertical: 1.0,
-        horizontal: 5.0
-    );
 
     Widget tasksListContent = const SizedBox();
 
@@ -486,7 +492,6 @@ class _TasksPageState extends State<TasksPage> {
                   },
                 ),
               ),
-
             ])));
 
     if (appState.isLoggedIn) {
@@ -541,8 +546,7 @@ class _TasksPageState extends State<TasksPage> {
               }
 
               return Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+                  padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
                   child: Column(children: [
                     taskListHeading,
                     Expanded(
@@ -589,7 +593,6 @@ class _TasksPageState extends State<TasksPage> {
               return Text('${snapshot.error}');
             }
 
-            // By default, show a loading spinner.
             return const CircularProgressIndicator();
           },
         );
@@ -622,13 +625,6 @@ class _TasksPageState extends State<TasksPage> {
                       tasksNumberLow++;
                       cardBorderColor = colorLow;
                   }
-
-                  chartData = [
-                    _ChartData('Urgent', tasksNumberUrgent, colorUrgent),
-                    _ChartData('High', tasksNumberHigh, colorHigh),
-                    _ChartData('Normal', tasksNumberNormal, colorNormal),
-                    _ChartData('Low', tasksNumberLow, colorLow)
-                  ];
 
                   taskCards.add(Card(
                       shape: RoundedRectangleBorder(
@@ -728,29 +724,44 @@ class _TasksPageState extends State<TasksPage> {
                   );
                 }
 
+                Widget pieChart = SizedBox(
+                    height: 150,
+                    child: SfCircularChart(
+                        tooltipBehavior: TooltipBehavior(enable: true),
+                        legend: const Legend(isVisible: true),
+                        series: [
+                          DoughnutSeries<_ChartData, String>(
+                              dataSource: [
+                                _ChartData('Urgent', tasksNumberUrgent, colorUrgent),
+                                _ChartData('High', tasksNumberHigh, colorHigh),
+                                _ChartData('Normal', tasksNumberNormal, colorNormal),
+                                _ChartData('Low', tasksNumberLow, colorLow)
+                              ],
+                              pointColorMapper: (_ChartData data, _) =>
+                                  data.color,
+                              xValueMapper: (_ChartData data, _) =>
+                                  '${data.x}: ${data.y}',
+                              yValueMapper: (_ChartData data, _) => data.y,
+                              name: 'Tasks')
+                        ]
+                    )
+                );
+
+                Widget taskListBody = Expanded(
+                    child: ListView(
+                        children: taskCards
+                    )
+                );
+
                 return Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+                    padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
                     child: Column(children: [
-                      taskListHeading,
-                      Container(
-                          height: 150,
-                          child: SfCircularChart(
-                              tooltipBehavior: TooltipBehavior(enable: true),
-                              legend: const Legend(isVisible: true),
-                              series: [
-                                DoughnutSeries<_ChartData, String>(
-                                    dataSource: chartData,
-                                    pointColorMapper: (_ChartData data, _) =>
-                                        data.color,
-                                    xValueMapper: (_ChartData data, _) =>
-                                        '${data.x}: ${data.y}',
-                                    yValueMapper: (_ChartData data, _) =>
-                                        data.y,
-                                    name: 'Tasks')
-                              ])),
-                      Expanded(child: ListView(children: taskCards))
-                    ]));
+                        taskListHeading,
+                        pieChart,
+                        taskListBody
+                      ]
+                    )
+                );
               }
             });
       } else {
@@ -760,7 +771,7 @@ class _TasksPageState extends State<TasksPage> {
 
     if (!appState.isLoggedIn || !appState.isTasksLoaded ||
         (appState.showTaskID != 0 && !appState.isTaskDetailsLoaded)) {
-      tasksListContent = Padding(
+        tasksListContent = Padding(
           padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
           child: Column(children: [
             taskListHeading,
@@ -828,109 +839,129 @@ class _AccountPageState extends State<AccountPage> {
       textStyle: const TextStyle(fontSize: 26),
       padding: const EdgeInsets.fromLTRB(20, 10, 20, 10));
 
+  bool _passwordVisible = false;
+
   Widget loginForm() {
     var appState = context.watch<RedmineClientState>();
-
-    bool? saveLoginDetails = appState.saveLoginDetails;
 
     TextEditingController urlController = appState.urlController;
     TextEditingController loginController = appState.loginController;
     TextEditingController passwordController = appState.passwordController;
 
     return Scaffold(
-      body: Form(
-        key: _formKey,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                child: TextFormField(
-                  controller: urlController,
-                  decoration: const InputDecoration(
-                      border: OutlineInputBorder(), labelText: "Host URL"),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter host URL';
-                    }
-                    return null;
-                  },
-                ),
-              ),
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                child: TextFormField(
-                  controller: loginController,
-                  decoration: const InputDecoration(
-                      border: OutlineInputBorder(), labelText: "Login"),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your Login';
-                    }
-                    return null;
-                  },
-                ),
-              ),
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                child: TextFormField(
-                  autofocus: true,
-                  controller: passwordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                      border: OutlineInputBorder(), labelText: "Password"),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your Password';
-                    }
-                    return null;
-                  },
-                ),
-              ),
-              Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.blue),
-                    ),
-                    child: CheckboxListTile(
-                      title: const Text('Save Login Details'),
-                      controlAffinity: ListTileControlAffinity.leading,
-                      value: saveLoginDetails,
-                      onChanged: (bool? newValue) {
-                        appState.setSaveLoginOption(newValue);
-                      },
-                    ),
-                  )),
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                child: Center(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      if (_formKey.currentState!.validate()) {
-                        appState.loginUser();
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Please fill input')),
-                        );
-                      }
-                    },
-                    style: loginBtnStyle,
-                    child: const Text('Login'),
-                  ),
-                ),
-              ),
-            ],
+      body: Container(
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage('assets/images/login_bg.jpg'),
+              fit: BoxFit.cover,
+            ),
           ),
-        ),
-      ),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const Spacer(),
+                Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(5.0),
+                      color: Colors.white,
+                    ),
+                    child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 20),
+                        child: Column(children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 0, vertical: 10),
+                            child: TextFormField(
+                              controller: urlController,
+                              decoration: const InputDecoration(
+                                  border: OutlineInputBorder(),
+                                  labelStyle: TextStyle(fontSize: 22),
+                                  labelText: "Host URL"),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please enter host URL';
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 0, vertical: 10),
+                            child: TextFormField(
+                              controller: loginController,
+                              decoration: const InputDecoration(
+                                  border: OutlineInputBorder(),
+                                  labelStyle: TextStyle(fontSize: 22),
+                                  labelText: "Login"),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please enter your Login';
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 0, vertical: 10),
+                            child: TextFormField(
+                              autofocus: true,
+                              controller: passwordController,
+                              obscureText: !_passwordVisible,
+                              decoration: InputDecoration(
+                                border: const OutlineInputBorder(),
+                                labelText: "Password",
+                                labelStyle: const TextStyle(fontSize: 22),
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    _passwordVisible
+                                        ? Icons.visibility_off
+                                        : Icons.visibility,
+                                  ),
+                                  onPressed: () {
+                                    setState(() {
+                                      _passwordVisible = !_passwordVisible;
+                                    });
+                                  },
+                                ),
+                              ),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please enter your Password';
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 5),
+                            child: Center(
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  if (_formKey.currentState!.validate()) {
+                                    appState.loginUser();
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                          content: Text('Please fill input')),
+                                    );
+                                  }
+                                },
+                                style: loginBtnStyle,
+                                child: const Text('Login'),
+                              ),
+                            ),
+                          ),
+                        ])))
+              ],
+            ),
+          )),
     );
   }
 
