@@ -79,12 +79,10 @@ class RedmineClientState extends ChangeNotifier {
       passwordController.text = savedUserPassword;
 
       if (lastLoginSuccess == true) {
-        loginUser();
+        loginUser(false);
       }
 
       notifyListeners();
-
-      return;
     }
   }
 
@@ -112,6 +110,11 @@ class RedmineClientState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setCurrentPage(int index) {
+    showPageID = index;
+    notifyListeners();
+  }
+
   Future<void> logout() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
 
@@ -128,7 +131,7 @@ class RedmineClientState extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> loginUser() async {
+  Future<void> loginUser(bool showConfirmMsg) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
 
     toggleLoading(true);
@@ -158,7 +161,13 @@ class RedmineClientState extends ChangeNotifier {
 
       toggleLoading(false);
       notifyListeners();
-      showAlertMessage('You have successfully logged into account', 1);
+
+      if (showConfirmMsg) {
+        showAlertMessage('You have successfully logged into account', 1);
+      } else {
+        showPageID = 1;
+        notifyListeners();
+      }
     }).catchError((error) {
       prefs.setBool('last_login_success', false);
 
@@ -232,36 +241,15 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
-  int _selectedIndex = 0;
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
-
-  void showTasksPage() {
-    setState(() {
-      _selectedIndex = 1;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     StatefulWidget currentPage;
 
     var appState = context.watch<RedmineClientState>();
 
-    bool isLoggedIn = appState.isLoggedIn;
-    bool loadingProcess = appState.loadingProcess;
-    bool showAlert = appState.showAlert;
-
-    int showPageID = appState.showPageID;
-    String alertMessage = appState.alertMessage;
-
     late Future<User> currentUser = appState.currentUser;
 
-    switch (_selectedIndex) {
+    switch (appState.showPageID) {
       case 0:
         currentPage = const AccountPage();
         break;
@@ -272,7 +260,7 @@ class _MainPageState extends State<MainPage> {
         currentPage = const AboutPage();
         break;
       default:
-        throw UnimplementedError('No page added for $_selectedIndex');
+        throw UnimplementedError('No page added for ${appState.showPageID}');
     }
 
     const userDetailsTextStyle = TextStyle(fontSize: 18, color: Colors.white);
@@ -285,7 +273,7 @@ class _MainPageState extends State<MainPage> {
       List<Widget> list = <Widget>[];
       List<Widget> headerContent = <Widget>[];
 
-      if (isLoggedIn) {
+      if (appState.isLoggedIn) {
         drawerHeadingHeight = 275;
 
         headerContent.add(
@@ -343,10 +331,10 @@ class _MainPageState extends State<MainPage> {
         list.add(
           ListTile(
             title: Text(mainMenuItems[i]),
-            selected: _selectedIndex == i,
+            selected: appState.showPageID == i,
             onTap: () {
               // Update the state of the app
-              _onItemTapped(i);
+              appState.setCurrentPage(i);
               // Then close the drawer
               Navigator.pop(context);
 
@@ -360,28 +348,26 @@ class _MainPageState extends State<MainPage> {
       return list;
     }
 
-    if (showAlert) {
+    if (appState.showAlert) {
       appState.showAlert = false;
 
       return Container(
           color: Colors.white,
           child: AlertDialog(
             title: const Text("Information"),
-            content: Text(alertMessage),
+            content: Text(appState.alertMessage),
             actions: <Widget>[
               TextButton(
                 child: const Text('OK'),
                 onPressed: () {
-                  setState(() {
-                    _selectedIndex = showPageID;
-                  });
+                  appState.setCurrentPage(appState.showPageID);
                 },
               ),
             ],
           ));
     }
 
-    if (loadingProcess) {
+    if (appState.loadingProcess) {
       return Scaffold(
         backgroundColor: Color.fromRGBO(0, 128, 255, 1),
         body: Center(
@@ -464,14 +450,15 @@ class _TasksPageState extends State<TasksPage> {
       horizontal: 5.0
   );
 
-  int tasksNumberUrgent = 0;
-  int tasksNumberHigh = 0;
-  int tasksNumberNormal = 0;
-  int tasksNumberLow = 0;
-
   @override
   Widget build(BuildContext context) {
     var appState = context.watch<RedmineClientState>();
+
+    int tasksNumber = 0;
+    int tasksNumberUrgent = 0;
+    int tasksNumberHigh = 0;
+    int tasksNumberNormal = 0;
+    int tasksNumberLow = 0;
 
     Widget tasksListContent = const SizedBox();
 
@@ -728,9 +715,16 @@ class _TasksPageState extends State<TasksPage> {
                   );
                 }
 
+                tasksNumber = snapshot.data!.length;
+
                 Widget pieChart = SizedBox(
                     height: 150,
                     child: SfCircularChart(
+                        annotations: <CircularChartAnnotation>[
+                          CircularChartAnnotation(
+                              widget: Text('${tasksNumber}',
+                                  style: const TextStyle(color: mainTextColor, fontSize: 28, fontWeight: FontWeight.bold)))
+                        ],
                         tooltipBehavior: TooltipBehavior(enable: true),
                         legend: const Legend(isVisible: true),
                         series: [
@@ -949,7 +943,7 @@ class _AccountPageState extends State<AccountPage> {
                               child: ElevatedButton(
                                 onPressed: () {
                                   if (_formKey.currentState!.validate()) {
-                                    appState.loginUser();
+                                    appState.loginUser(true);
                                   } else {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
