@@ -5,8 +5,8 @@ import 'package:redmine_client/models/user.dart';
 import 'package:redmine_client/models/issue_details.dart';
 
 class RedmineClientProvider extends ChangeNotifier {
-  int showPageID = 0;
-  int showTaskID = 0;
+  int currentPageID = 0;
+  int currentTaskID = 0;
 
   bool isLoggedIn = false;
   bool isTasksLoaded = false;
@@ -72,20 +72,19 @@ class RedmineClientProvider extends ChangeNotifier {
   void showAlertMessage(String message, int pageID) {
     showAlert = true;
     alertMessage = message;
-    showPageID = pageID;
+    currentPageID = pageID;
 
     notifyListeners();
   }
 
-  void backToTasksList()
-  {
-    showTaskID = 0;
+  void backToTasksList() {
+    currentTaskID = 0;
     isTaskDetailsLoaded = false;
     notifyListeners();
   }
 
   void setCurrentPage(int index) {
-    showPageID = index;
+    currentPageID = index;
     notifyListeners();
   }
 
@@ -104,7 +103,7 @@ class RedmineClientProvider extends ChangeNotifier {
     isLoggedIn = false;
     isTasksLoaded = false;
     isTaskDetailsLoaded = false;
-    showTaskID = 0;
+    currentTaskID = 0;
 
     showAlertMessage('You have logged out', 0);
     notifyListeners();
@@ -124,9 +123,9 @@ class RedmineClientProvider extends ChangeNotifier {
     prefs.setString('user_password', passwordController.text);
 
     ApiController apiController = ApiController(
-        hostURL: hostURL,
-        login: userLogin,
-        password: userPassword);
+      hostURL: hostURL,
+      login: userLogin,
+      password: userPassword,);
 
     currentUser = apiController.getCurrentUser();
 
@@ -144,7 +143,7 @@ class RedmineClientProvider extends ChangeNotifier {
       if (showConfirmMsg) {
         showAlertMessage('You have successfully logged into account', 1);
       } else {
-        showPageID = 1;
+        currentPageID = 1;
         notifyListeners();
       }
     }).catchError((error) {
@@ -157,9 +156,9 @@ class RedmineClientProvider extends ChangeNotifier {
 
   Future<void> getTasks() async {
     ApiController apiController = ApiController(
-        hostURL: hostURL,
-        login: userLogin,
-        password: userPassword);
+      hostURL: hostURL,
+      login: userLogin,
+      password: userPassword,);
 
     userTasks = apiController.getAssignedTasks();
 
@@ -172,19 +171,18 @@ class RedmineClientProvider extends ChangeNotifier {
   }
 
   Future<void> getTaskDetails(int taskID) async {
-    showTaskID = taskID;
+    currentTaskID = taskID;
 
     notifyListeners();
 
     ApiController apiController = ApiController(
-        hostURL: hostURL,
-        login: userLogin,
-        password: userPassword);
+      hostURL: hostURL,
+      login: userLogin,
+      password: userPassword,);
 
     taskDetails = apiController.getIssueDetails(taskID);
 
     taskDetails.then((userData) {
-      showTaskID = 0;
       isTaskDetailsLoaded = true;
       notifyListeners();
     }).catchError((error) {
@@ -194,9 +192,9 @@ class RedmineClientProvider extends ChangeNotifier {
 
   String removeAllHtmlTags(String htmlText) {
     RegExp exp = RegExp(
-        r"<[^>]*>",
-        multiLine: true,
-        caseSensitive: true
+      r"<[^>]*>",
+      multiLine: true,
+      caseSensitive: true,
     );
 
     return htmlText.replaceAll(exp, '');
