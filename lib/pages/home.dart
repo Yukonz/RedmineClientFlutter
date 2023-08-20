@@ -7,6 +7,8 @@ import 'package:redmine_client/pages/tasks.dart';
 import 'package:redmine_client/pages/about.dart';
 import 'package:redmine_client/models/user.dart';
 
+import 'package:redmine_client/components/user_info.dart';
+
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
@@ -15,6 +17,8 @@ class HomePage extends StatelessWidget {
     Widget currentPage;
 
     var appProvider = context.watch<RedmineClientProvider>();
+
+    bool singleTaskSelected = appProvider.currentTaskID > 0;
 
     late Future<User> currentUser = appProvider.currentUser;
 
@@ -54,33 +58,11 @@ class HomePage extends StatelessWidget {
             future: currentUser,
             builder: (context, snapshot) {
               if (snapshot.hasData) {
-                return Column(
-                  children: [
-                    CircleAvatar(
-                      backgroundImage: NetworkImage(snapshot.data!.avatarUrl),
-                      maxRadius: 30,
-                      minRadius: 30,
-                    ),
-                    const SizedBox(height: 10.0),
-                    Text(
-                        '${snapshot.data!.firstName} ${snapshot.data!.lastName}',
-                        style: userDetailsTextStyle),
-                    Text(
-                      snapshot.data!.email,
-                      style: userDetailsTextStyle,
-                    ),
-                    const SizedBox(height: 10.0),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        textStyle: const TextStyle(fontSize: 18),
-                        padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-                      ),
-                      child: const Text('Logout'),
-                      onPressed: () {
-                        appProvider.logout();
-                      },
-                    ),
-                  ],
+                return UserInfo(
+                  avatarURL: snapshot.data!.avatarUrl,
+                  firstName: snapshot.data!.firstName,
+                  lastName: snapshot.data!.lastName,
+                  email: snapshot.data!.email,
                 );
               } else if (snapshot.hasError) {
                 return Text('${snapshot.error}');
@@ -123,7 +105,7 @@ class HomePage extends StatelessWidget {
               // Then close the drawer
               Navigator.pop(context);
 
-              if (appProvider.isTaskDetailsLoaded) {
+              if (singleTaskSelected) {
                 appProvider.backToTasksList();
               }
             },

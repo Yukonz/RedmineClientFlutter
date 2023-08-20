@@ -10,7 +10,6 @@ class RedmineClientProvider extends ChangeNotifier {
 
   bool isLoggedIn = false;
   bool isTasksLoaded = false;
-  bool isTaskDetailsLoaded = false;
 
   bool loadingProcess = false;
   bool showPassword = false;
@@ -79,7 +78,6 @@ class RedmineClientProvider extends ChangeNotifier {
 
   void backToTasksList() {
     currentTaskID = 0;
-    isTaskDetailsLoaded = false;
     notifyListeners();
   }
 
@@ -102,7 +100,6 @@ class RedmineClientProvider extends ChangeNotifier {
     userPassword = '';
     isLoggedIn = false;
     isTasksLoaded = false;
-    isTaskDetailsLoaded = false;
     currentTaskID = 0;
 
     showAlertMessage('You have logged out', 0);
@@ -162,10 +159,12 @@ class RedmineClientProvider extends ChangeNotifier {
 
     userTasks = apiController.getAssignedTasks();
 
+    isTasksLoaded = true;
+
     userTasks.then((userData) {
-      isTasksLoaded = true;
-      notifyListeners();
+
     }).catchError((error) {
+      isTasksLoaded = false;
       showAlertMessage('Unable load tasks list: $error', 0);
     });
   }
@@ -183,27 +182,10 @@ class RedmineClientProvider extends ChangeNotifier {
     taskDetails = apiController.getIssueDetails(taskID);
 
     taskDetails.then((userData) {
-      isTaskDetailsLoaded = true;
-      notifyListeners();
+
     }).catchError((error) {
+      currentTaskID = 0;
       showAlertMessage('Unable load task details: $error', 1);
     });
-  }
-
-  String removeAllHtmlTags(String htmlText) {
-    RegExp exp = RegExp(
-      r"<[^>]*>",
-      multiLine: true,
-      caseSensitive: true,
-    );
-
-    return htmlText.replaceAll(exp, '');
-  }
-
-  String formatDate(String dateStr) {
-    String newStr = dateStr.replaceAll('T', ' ');
-    newStr = newStr.substring(0, newStr.length - 4);
-
-    return newStr;
   }
 }
