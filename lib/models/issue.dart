@@ -25,4 +25,16 @@ class Issue {
       dateCreated: json['created_on'],
     );
   }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'priority': priority,
+      'author': author,
+      'assigned_to': assignedTo,
+      'subject': subject,
+      'date_created': dateCreated,
+      'description': '',
+    };
+  }
 }

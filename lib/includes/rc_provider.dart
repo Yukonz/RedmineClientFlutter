@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:redmine_client/controllers/db.dart';
 import 'package:redmine_client/controllers/api.dart';
 import 'package:redmine_client/models/user.dart';
 import 'package:redmine_client/models/issue_details.dart';
@@ -161,8 +162,9 @@ class RedmineClientProvider extends ChangeNotifier {
 
     isTasksLoaded = true;
 
-    userTasks.then((userData) {
-
+    userTasks.then((issues) {
+      DbController dbController = DbController();
+      dbController.storeIssuesToDb(issues);
     }).catchError((error) {
       isTasksLoaded = false;
       showAlertMessage('Unable load tasks list: $error', 0);
@@ -181,8 +183,10 @@ class RedmineClientProvider extends ChangeNotifier {
 
     taskDetails = apiController.getIssueDetails(taskID);
 
-    taskDetails.then((userData) {
-
+    taskDetails.then((issueDetails) {
+      DbController dbController = DbController();
+      dbController.storeIssueDetailsToDb(issueDetails);
+      dbController.storeJournalsToDb(issueDetails.id, issueDetails.journals);
     }).catchError((error) {
       currentTaskID = 0;
       showAlertMessage('Unable load task details: $error', 1);

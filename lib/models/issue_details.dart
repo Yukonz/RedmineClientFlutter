@@ -28,7 +28,7 @@ class IssueDetails extends Issue {
     }
 
     for (var i = 0; i < json['issue']['journals'].length; i++) {
-      issueJournals.add(Journal.fromJson(json['issue']['journals'][i]));
+      issueJournals.add(Journal.fromJson(json['issue']['id'], json['issue']['journals'][i]));
     }
 
     return IssueDetails(
