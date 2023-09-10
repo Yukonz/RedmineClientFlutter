@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:redmine_client/components/network_status.dart';
 import 'package:redmine_client/components/tasks_list_heading.dart';
 import 'package:redmine_client/includes/rc_provider.dart';
 import 'package:redmine_client/includes/rc_helper.dart';
@@ -126,6 +127,7 @@ class TasksPage extends StatelessWidget {
                       normal: tasksNumberNormal,
                       low: tasksNumberLow,
                     ),
+                    const NetworkStatus(),
                     Expanded(
                       child: ListView(children: taskCards),
                     ),

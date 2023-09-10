@@ -1,5 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:internet_connection_checker/internet_connection_checker.dart';
+
 import 'package:redmine_client/controllers/db.dart';
 import 'package:redmine_client/controllers/api.dart';
 import 'package:redmine_client/models/user.dart';
@@ -30,7 +34,10 @@ class RedmineClientProvider extends ChangeNotifier {
   late Future<List> userTasks;
   late Future<IssueDetails> taskDetails;
 
+  bool internetConnection = false;
+
   RedmineClientProvider() {
+    checkInternetConnection();
     autoLogIn();
   }
 
@@ -58,6 +65,11 @@ class RedmineClientProvider extends ChangeNotifier {
 
       notifyListeners();
     }
+  }
+
+  void checkInternetConnection() async {
+    internetConnection = await InternetConnectionChecker().hasConnection;
+    notifyListeners();
   }
 
   void setSaveLoginOption(bool? saveLogin) async {
@@ -120,15 +132,22 @@ class RedmineClientProvider extends ChangeNotifier {
     prefs.setString('user_login', loginController.text);
     prefs.setString('user_password', passwordController.text);
 
-    ApiController apiController = ApiController(
-      hostURL: hostURL,
-      login: userLogin,
-      password: userPassword,);
+    if (internetConnection == true) {
+      ApiController apiController = ApiController(
+        hostURL: hostURL,
+        login: userLogin,
+        password: userPassword,);
 
-    currentUser = apiController.getCurrentUser();
+      currentUser = apiController.getCurrentUser();
+    } else {
+      currentUser = getStoredUserData();
+    }
 
     currentUser.then((userData) {
-      prefs.setBool('last_login_success', true);
+      if (internetConnection == true) {
+        prefs.setBool('last_login_success', true);
+        prefs.setString('user_data', jsonEncode(userData.toJson()));
+      }
 
       hostURL = urlController.text;
       userLogin = loginController.text;
@@ -152,19 +171,39 @@ class RedmineClientProvider extends ChangeNotifier {
     });
   }
 
-  Future<void> getTasks() async {
-    ApiController apiController = ApiController(
-      hostURL: hostURL,
-      login: userLogin,
-      password: userPassword,);
+  Future<User> getStoredUserData() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
 
-    userTasks = apiController.getAssignedTasks();
+    String? userDataJSON = prefs.getString('user_data');
+
+    if (userDataJSON != null) {
+      return User.fromJson(jsonDecode(userDataJSON));
+    }
+
+    throw Exception('No internet connection');
+  }
+
+  Future<void> getTasks() async {
+    DbController dbController = DbController();
+
+    if (internetConnection == true) {
+      ApiController apiController = ApiController(
+        hostURL: hostURL,
+        login: userLogin,
+        password: userPassword,);
+
+      userTasks = apiController.getAssignedTasks();
+    } else {
+      userTasks = dbController.getStoredIssues();
+    }
 
     isTasksLoaded = true;
 
     userTasks.then((issues) {
-      DbController dbController = DbController();
-      dbController.storeIssuesToDb(issues);
+      if (internetConnection == true) {
+        DbController dbController = DbController();
+        dbController.storeIssuesToDb(issues);
+      }
     }).catchError((error) {
       isTasksLoaded = false;
       showAlertMessage('Unable load tasks list: $error', 0);

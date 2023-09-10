@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:redmine_client/models/issue.dart';
 import 'package:redmine_client/models/issue_details.dart';
 
 class DbController {
@@ -71,6 +72,22 @@ class DbController {
           conflictAlgorithm: ConflictAlgorithm.replace,
         );
       }
+    });
+  }
+
+  Future<List<Issue>> getStoredIssues() async {
+    final db = await getDatabase();
+    final List<Map<String, dynamic>> storedIssues = await db.query('issues ORDER BY priority');
+
+    return List.generate(storedIssues.length, (i) {
+      return Issue(
+        id:          storedIssues[i]['id'],
+        priority:    storedIssues[i]['priority'],
+        author:      storedIssues[i]['author'],
+        assignedTo:  storedIssues[i]['assigned_to'],
+        subject:     storedIssues[i]['subject'],
+        dateCreated: storedIssues[i]['date_created'],
+      );
     });
   }
 }

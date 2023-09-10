@@ -37,11 +37,6 @@ class HomePage extends StatelessWidget {
             'No page added for ${appProvider.currentPageID}');
     }
 
-    const userDetailsTextStyle = TextStyle(
-      fontSize: 18,
-      color: Colors.white,
-    );
-
     double drawerHeadingHeight = 100;
 
     List<String> mainMenuItems = ['User Account', 'My Tasks', 'About'];
