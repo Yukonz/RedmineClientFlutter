@@ -157,7 +157,7 @@ class RedmineClientProvider extends ChangeNotifier {
       toggleLoading(false);
       notifyListeners();
 
-      if (showConfirmMsg) {
+      if (showConfirmMsg && internetConnection == true) {
         showAlertMessage('You have successfully logged into account', 1);
       } else {
         currentPageID = 1;
@@ -178,9 +178,9 @@ class RedmineClientProvider extends ChangeNotifier {
 
     if (userDataJSON != null) {
       return User.fromJson(jsonDecode(userDataJSON));
+    } else {
+      throw Exception('No internet connection');
     }
-
-    throw Exception('No internet connection');
   }
 
   Future<void> getTasks() async {

@@ -31,13 +31,13 @@ class User {
 
   Map<String, dynamic> toJson() => {
     'user': {
-      'id': id,
-      'login': login,
-      'email': email,
-      'firstName': firstName,
-      'lastName': lastName,
-      'lastLogin': lastLogin,
-      'avatarUrl': avatarUrl,
+      'id':            id,
+      'login':         login,
+      'mail':          email,
+      'firstname':     firstName,
+      'lastname':      lastName,
+      'last_login_on': lastLogin,
+      'avatar_url':    avatarUrl,
     },
   };
 }

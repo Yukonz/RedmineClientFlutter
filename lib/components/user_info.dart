@@ -27,13 +27,19 @@ class UserInfo extends StatelessWidget {
   Widget build(BuildContext context) {
     var appProvider = context.watch<RedmineClientProvider>();
 
+    Widget userAvatar = const Icon(Icons.person_2_rounded, size: 40, color: Colors.white);
+
+    if (appProvider.internetConnection == true) {
+      userAvatar = CircleAvatar(
+        backgroundImage: NetworkImage(avatarURL),
+        maxRadius: 30,
+        minRadius: 30,
+      );
+    }
+
     return Column(
       children: [
-        CircleAvatar(
-          backgroundImage: NetworkImage(avatarURL),
-          maxRadius: 30,
-          minRadius: 30,
-        ),
+        userAvatar,
         const SizedBox(height: 10.0),
         Text(
             '$firstName $lastName',
