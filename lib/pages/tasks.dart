@@ -93,6 +93,11 @@ class TasksPage extends StatelessWidget {
             if (snapshot.hasData) {
               List<TaskCard> taskCards = <TaskCard>[];
 
+              tasksNumberUrgent = 0;
+              tasksNumberHigh = 0;
+              tasksNumberNormal = 0;
+              tasksNumberLow = 0;
+
               for (var i = 0; i < snapshot.data!.length; i++) {
                 switch (snapshot.data![i].priority) {
                   case 'Urgent':

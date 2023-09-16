@@ -24,7 +24,7 @@ class HomePage extends StatelessWidget {
 
     switch (appProvider.currentPageID) {
       case 0:
-        currentPage = AccountPage();
+        currentPage = const AccountPage();
         break;
       case 1:
         currentPage = const TasksPage();
