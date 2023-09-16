@@ -61,6 +61,7 @@ class TasksPage extends StatelessWidget {
                     Expanded(
                       child: ListView(
                         children: [
+                          const NetworkStatus(),
                           TaskTitleCard(
                             id: snapshot.data!.id,
                             priority: snapshot.data!.priority,

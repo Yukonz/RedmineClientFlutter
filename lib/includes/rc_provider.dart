@@ -132,7 +132,7 @@ class RedmineClientProvider extends ChangeNotifier {
     prefs.setString('user_login', loginController.text);
     prefs.setString('user_password', passwordController.text);
 
-    if (internetConnection == true) {
+    if (internetConnection) {
       ApiController apiController = ApiController(
         hostURL: hostURL,
         login: userLogin,
@@ -144,7 +144,7 @@ class RedmineClientProvider extends ChangeNotifier {
     }
 
     currentUser.then((userData) {
-      if (internetConnection == true) {
+      if (internetConnection) {
         prefs.setBool('last_login_success', true);
         prefs.setString('user_data', jsonEncode(userData.toJson()));
       }
@@ -157,7 +157,7 @@ class RedmineClientProvider extends ChangeNotifier {
       toggleLoading(false);
       notifyListeners();
 
-      if (showConfirmMsg && internetConnection == true) {
+      if (showConfirmMsg && internetConnection) {
         showAlertMessage('You have successfully logged into account', 1);
       } else {
         currentPageID = 1;
@@ -186,7 +186,7 @@ class RedmineClientProvider extends ChangeNotifier {
   Future<void> getTasks() async {
     DbController dbController = DbController();
 
-    if (internetConnection == true) {
+    if (internetConnection) {
       ApiController apiController = ApiController(
         hostURL: hostURL,
         login: userLogin,
@@ -200,8 +200,7 @@ class RedmineClientProvider extends ChangeNotifier {
     isTasksLoaded = true;
 
     userTasks.then((issues) {
-      if (internetConnection == true) {
-        DbController dbController = DbController();
+      if (internetConnection) {
         dbController.storeIssuesToDb(issues);
       }
     }).catchError((error) {
@@ -215,17 +214,24 @@ class RedmineClientProvider extends ChangeNotifier {
 
     notifyListeners();
 
-    ApiController apiController = ApiController(
-      hostURL: hostURL,
-      login: userLogin,
-      password: userPassword,);
+    DbController dbController = DbController();
 
-    taskDetails = apiController.getIssueDetails(taskID);
+    if (internetConnection) {
+      ApiController apiController = ApiController(
+        hostURL: hostURL,
+        login: userLogin,
+        password: userPassword,);
+
+      taskDetails = apiController.getIssueDetails(taskID);
+    } else {
+      taskDetails = dbController.getStoredIssueDetails(taskID);
+    }
 
     taskDetails.then((issueDetails) {
-      DbController dbController = DbController();
-      dbController.storeIssueDetailsToDb(issueDetails);
-      dbController.storeJournalsToDb(issueDetails.id, issueDetails.journals);
+      if (internetConnection) {
+        dbController.storeIssueDetailsToDb(issueDetails);
+        dbController.storeJournalsToDb(issueDetails.id, issueDetails.journals);
+      }
     }).catchError((error) {
       currentTaskID = 0;
       showAlertMessage('Unable load task details: $error', 1);
