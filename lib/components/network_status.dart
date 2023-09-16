@@ -39,9 +39,9 @@ class NetworkStatus extends StatelessWidget {
             Visibility(
               visible: !appProvider.internetConnection,
               child: IconButton(
-                icon: const Icon(Icons.warning_amber_rounded),
+                icon: const Icon(Icons.refresh_outlined),
                 onPressed: () {
-                  appProvider.checkInternetConnection();
+                  appProvider.refreshInternetConnectionStatus();
                 },
               ),
             ),

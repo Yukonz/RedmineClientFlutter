@@ -104,6 +104,17 @@ class RedmineClientProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void refreshInternetConnectionStatus()
+  {
+    checkInternetConnection();
+
+    if (currentTaskID == 0) {
+      getTasks();
+    } else {
+      getTaskDetails(currentTaskID);
+    }
+  }
+
   Future<void> logout() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
 
