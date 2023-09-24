@@ -12,8 +12,21 @@ import 'package:redmine_client/components/task_card.dart';
 import 'package:redmine_client/components/task_title_card.dart';
 import 'package:redmine_client/components/task_journal_card.dart';
 
-class TasksPage extends StatelessWidget {
+class TasksPage extends StatefulWidget {
   const TasksPage({super.key});
+
+  @override
+  State<TasksPage> createState() => _TasksPageState();
+}
+
+class _TasksPageState extends State<TasksPage> {
+  Key _key = UniqueKey();
+
+  void reloadTasksPage() {
+    setState(() {
+      _key = UniqueKey();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,6 +46,7 @@ class TasksPage extends StatelessWidget {
     if (appProvider.isLoggedIn) {
       if (appProvider.currentTaskID != 0) {
         return FutureBuilder<IssueDetails>(
+          key: _key,
           future: appProvider.taskDetails,
           builder: (context, snapshot) {
             if (snapshot.hasData) {
@@ -61,7 +75,7 @@ class TasksPage extends StatelessWidget {
                     Expanded(
                       child: ListView(
                         children: [
-                          const NetworkStatus(),
+                          NetworkStatus(callback: reloadTasksPage),
                           TaskTitleCard(
                             id: snapshot.data!.id,
                             priority: snapshot.data!.priority,
@@ -88,6 +102,7 @@ class TasksPage extends StatelessWidget {
         );
       } else {
         tasksListContent = FutureBuilder<List<dynamic>?>(
+          key: _key,
           future: appProvider.userTasks,
           builder: (context, snapshot) {
             if (snapshot.hasData) {
@@ -133,7 +148,7 @@ class TasksPage extends StatelessWidget {
                       normal: tasksNumberNormal,
                       low: tasksNumberLow,
                     ),
-                    const NetworkStatus(),
+                    NetworkStatus(callback: reloadTasksPage),
                     Expanded(
                       child: ListView(children: taskCards),
                     ),
