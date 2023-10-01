@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:dart_ping/dart_ping.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
@@ -67,8 +68,11 @@ class RedmineClientProvider extends ChangeNotifier {
     }
   }
 
-  void checkInternetConnection() async {
-    internetConnection = await InternetConnectionChecker().hasConnection;
+  checkInternetConnection() async {
+    final result = await Ping('projects.rebsoc.com', count: 1).stream.first;
+
+    internetConnection = result.response?.ip != null;
+
     notifyListeners();
   }
 
@@ -104,9 +108,8 @@ class RedmineClientProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void refreshInternetConnectionStatus()
-  {
-    checkInternetConnection();
+  Future<void> refreshInternetConnectionStatus() async {
+    await checkInternetConnection();
 
     if (currentTaskID == 0) {
       getTasks();
@@ -195,6 +198,8 @@ class RedmineClientProvider extends ChangeNotifier {
   }
 
   Future<void> getTasks() async {
+    await checkInternetConnection();
+
     DbController dbController = DbController();
 
     if (internetConnection) {

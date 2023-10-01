@@ -43,6 +43,7 @@ dependencies:
   sqflite: ^2.3.0
   path: ^1.8.3
   internet_connection_checker: ^1.0.0+1
+  dart_ping: ^9.0.0
 
 dev_dependencies:
   flutter_test:
