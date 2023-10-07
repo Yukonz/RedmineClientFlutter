@@ -106,6 +106,10 @@ class _TasksPageState extends State<TasksPage> {
           future: appProvider.userTasks,
           builder: (context, snapshot) {
             if (snapshot.hasData) {
+              if (snapshot.data!.isEmpty) {
+                return const LoadingAnimation();
+              }
+
               List<TaskCard> taskCards = <TaskCard>[];
 
               tasksNumberUrgent = 0;

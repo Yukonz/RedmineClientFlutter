@@ -198,6 +198,10 @@ class RedmineClientProvider extends ChangeNotifier {
   }
 
   Future<void> getTasks() async {
+    userTasks = Future.delayed(const Duration(seconds: 0), () {
+      return <List>[];
+    });
+
     await checkInternetConnection();
 
     DbController dbController = DbController();
