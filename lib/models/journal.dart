@@ -35,6 +35,7 @@ class Journal {
       'author_name': authorName,
       'notes': notes,
       'date_created': dateCreated,
+      'hash': hashCode,
     };
   }
 }

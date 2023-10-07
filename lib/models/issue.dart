@@ -35,6 +35,7 @@ class Issue {
       'subject': subject,
       'date_created': dateCreated,
       'description': '',
+      'hash': hashCode,
     };
   }
 }

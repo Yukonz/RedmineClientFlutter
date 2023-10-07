@@ -7,7 +7,7 @@ import 'package:redmine_client/models/issue.dart';
 import 'package:redmine_client/models/issue_details.dart';
 
 class DbController {
-  final String dBfileName = 'rc_db.db';
+  final String dBfileName = 'rc_db.v2.db';
   late Database database;
 
   bool dBInitialized = false;
@@ -26,11 +26,11 @@ class DbController {
       },
       onCreate: (db, version) async {
         db.execute(
-          'CREATE TABLE issues(id INTEGER PRIMARY KEY, priority VARCHAR, author VARCHAR, assigned_to VARCHAR, subject TEXT, date_created VARCHAR, description TEXT)',
+          'CREATE TABLE issues(id INTEGER PRIMARY KEY, priority VARCHAR, author VARCHAR, assigned_to VARCHAR, subject TEXT, date_created VARCHAR, description TEXT, hash VARCHAR)',
         );
 
         db.execute(
-          'CREATE TABLE journals(id INTEGER PRIMARY KEY, task_id INTEGER, author_id INTEGER, author_name VARCHAR, notes TEXT, date_created VARCHAR)',
+          'CREATE TABLE journals(id INTEGER PRIMARY KEY, task_id INTEGER, author_id INTEGER, author_name VARCHAR, notes TEXT, date_created VARCHAR, hash VARCHAR)',
         );
       },
       version: 1,
@@ -39,14 +39,34 @@ class DbController {
 
   Future<void>storeIssuesToDb(List<dynamic> issues) async {
     getDatabase().then((db) async {
-      await db.execute('DELETE FROM issues');
+      List<int> currentIssueIDs = [];
 
       for (var i = 0; i < issues.length; i++) {
-        db.insert(
-          'issues',
-          issues[i].toMap(),
-          conflictAlgorithm: ConflictAlgorithm.replace,
-        );
+        currentIssueIDs.add(issues[i].id);
+      }
+
+      String currentIssueIDsStr = currentIssueIDs.join(",");
+
+      await db.execute('DELETE FROM issues WHERE id NOT IN ($currentIssueIDsStr)');
+
+      final List<Map<String, dynamic>> storedIssues = await db.rawQuery('SELECT id, hash FROM issues');
+
+      for (var i = 0; i < issues.length; i++) {
+        for (var k = 0; k < storedIssues.length; k++) {
+          if (issues[i].id == storedIssues[k]['id']) {
+            if (issues[i].hashCode != storedIssues[k]['hash']) {
+              await db.execute('DELETE FROM issues WHERE id = ${issues[i].id}');
+
+              db.insert(
+                'issues',
+                issues[i].toMap(),
+                conflictAlgorithm: ConflictAlgorithm.replace,
+              );
+            }
+
+            break;
+          }
+        }
       }
     });
   }
@@ -64,14 +84,34 @@ class DbController {
 
   Future<void>storeJournalsToDb(int taskId, List<dynamic> journals) async {
     getDatabase().then((db) async {
-      await db.execute('DELETE FROM journals WHERE task_id = $taskId');
+      List<int> currentJournalIDs = [];
 
       for (var i = 0; i < journals.length; i++) {
-        db.insert(
-          'journals',
-          journals[i].toMap(),
-          conflictAlgorithm: ConflictAlgorithm.replace,
-        );
+        currentJournalIDs.add(journals[i].id);
+      }
+
+      String currentJournalIDsStr = currentJournalIDs.join(",");
+
+      await db.execute('DELETE FROM journals WHERE task_id = $taskId AND id NOT IN ($currentJournalIDsStr)');
+
+      final List<Map<String, dynamic>> storedJournals = await db.rawQuery('SELECT id, hash FROM journals WHERE task_id = $taskId');
+
+      for (var i = 0; i < journals.length; i++) {
+        for (var k = 0; k < storedJournals.length; k++) {
+          if (journals[i].id == storedJournals[k]['id']) {
+            if (journals[i].hashCode != storedJournals[k]['hash']) {
+              await db.execute('DELETE FROM journals WHERE id = ${journals[i].id}');
+
+              db.insert(
+                'journals',
+                journals[i].toMap(),
+                conflictAlgorithm: ConflictAlgorithm.replace,
+              );
+            }
+
+            break;
+          }
+        }
       }
     });
   }
