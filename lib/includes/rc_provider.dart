@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:dart_ping/dart_ping.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 
@@ -35,11 +37,10 @@ class RedmineClientProvider extends ChangeNotifier {
   late Future<List> userTasks;
   late Future<IssueDetails> taskDetails;
 
-  bool internetConnection = false;
+  bool internetConnection = true;
 
   RedmineClientProvider() {
     checkInternetConnection();
-    autoLogIn();
   }
 
   void autoLogIn() async {
@@ -63,12 +64,13 @@ class RedmineClientProvider extends ChangeNotifier {
       if (lastLoginSuccess == true) {
         loginUser(false);
       }
-
-      notifyListeners();
     }
   }
 
   checkInternetConnection() async {
+    internetConnection = true;
+    return;
+
     final result = await Ping('projects.rebsoc.com', count: 1).stream.first;
 
     internetConnection = result.response?.ip != null;
@@ -169,14 +171,8 @@ class RedmineClientProvider extends ChangeNotifier {
       isLoggedIn = true;
 
       toggleLoading(false);
-      notifyListeners();
 
-      if (showConfirmMsg && internetConnection) {
-        showAlertMessage('You have successfully logged into account', 1);
-      } else {
-        currentPageID = 1;
-        notifyListeners();
-      }
+      showAlertMessage('You have successfully logged into account', 1);
     }).catchError((error) {
       prefs.setBool('last_login_success', false);
 
@@ -231,8 +227,6 @@ class RedmineClientProvider extends ChangeNotifier {
 
   Future<void> getTaskDetails(int taskID) async {
     currentTaskID = taskID;
-
-    notifyListeners();
 
     DbController dbController = DbController();
 

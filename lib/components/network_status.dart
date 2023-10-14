@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:redmine_client/includes/rc_provider.dart';
 
 class NetworkStatus extends StatelessWidget {
-  Function callback;
   static const Color mainTextColor = Color.fromRGBO(51, 64, 84, 1);
 
   static const TextStyle titleTextStyle = TextStyle(
       fontSize: 20, fontWeight: FontWeight.bold, color: mainTextColor);
 
-  NetworkStatus({
+  const NetworkStatus({
     super.key,
-    required this.callback
   });
 
   @override
@@ -44,7 +43,8 @@ class NetworkStatus extends StatelessWidget {
                 icon: const Icon(Icons.refresh_outlined),
                 onPressed: () {
                   appProvider.refreshInternetConnectionStatus();
-                  callback();
+                  context.go('/tasks');
+                  Navigator.pop(context);
                 },
               ),
             ),

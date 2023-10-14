@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:redmine_client/includes/rc_provider.dart';
 
@@ -75,7 +76,7 @@ class TaskCard extends StatelessWidget {
           ),
           child: InkWell(
             onTap: () {
-              appProvider.getTaskDetails(id);
+              context.go('/tasks/$id');
             },
             child: Table(
               columnWidths: const <int, TableColumnWidth>{

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:redmine_client/includes/rc_provider.dart';
 
@@ -83,7 +84,6 @@ class LoginForm extends StatelessWidget {
                       vertical: 10,
                     ),
                     child: TextFormField(
-                      autofocus: true,
                       controller: appProvider.passwordController,
                       obscureText: !appProvider.showPassword,
                       decoration: InputDecoration(
