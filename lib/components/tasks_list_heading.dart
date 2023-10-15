@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:redmine_client/includes/rc_provider.dart';
 
@@ -38,7 +39,7 @@ class TasksListHeading extends StatelessWidget {
               child: IconButton(
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () {
-                  appProvider.backToTasksList();
+                  context.pop();
                 },
               ),
             ),

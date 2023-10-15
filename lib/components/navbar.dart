@@ -78,15 +78,15 @@ class NavBar extends StatelessWidget {
               switch (i) {
                 case 0:
                   context.go('/login');
-                  Navigator.pop(context);
+                  context.pop();
                   break;
                 case 1:
                   context.go('/tasks');
-                  Navigator.pop(context);
+                  context.pop();
                   break;
                 case 2:
                   context.go('/about');
-                  Navigator.pop(context);
+                  context.pop();
                   break;
               }
             },

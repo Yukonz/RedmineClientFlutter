@@ -68,13 +68,12 @@ class RedmineClientProvider extends ChangeNotifier {
   }
 
   checkInternetConnection() async {
+    print('checkInternetConnection');
     internetConnection = true;
     return;
 
     final result = await Ping('projects.rebsoc.com', count: 1).stream.first;
-
     internetConnection = result.response?.ip != null;
-
     notifyListeners();
   }
 
@@ -194,12 +193,6 @@ class RedmineClientProvider extends ChangeNotifier {
   }
 
   Future<void> getTasks() async {
-    userTasks = Future.delayed(const Duration(seconds: 0), () {
-      return <List>[];
-    });
-
-    await checkInternetConnection();
-
     DbController dbController = DbController();
 
     if (internetConnection) {

@@ -4,7 +4,6 @@ import 'package:redmine_client/components/login_form.dart';
 import '../includes/rc_provider.dart';
 
 class AccountPage extends StatelessWidget {
-
   const AccountPage({
     super.key,
   });

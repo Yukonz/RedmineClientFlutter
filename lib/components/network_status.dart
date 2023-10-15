@@ -43,8 +43,6 @@ class NetworkStatus extends StatelessWidget {
                 icon: const Icon(Icons.refresh_outlined),
                 onPressed: () {
                   appProvider.refreshInternetConnectionStatus();
-                  context.go('/tasks');
-                  Navigator.pop(context);
                 },
               ),
             ),
