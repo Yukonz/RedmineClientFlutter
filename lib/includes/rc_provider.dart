@@ -1,21 +1,14 @@
 import 'dart:convert';
-
 import 'package:dart_ping/dart_ping.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:internet_connection_checker/internet_connection_checker.dart';
-
 import 'package:redmine_client/controllers/db.dart';
 import 'package:redmine_client/controllers/api.dart';
 import 'package:redmine_client/models/user.dart';
 import 'package:redmine_client/models/issue_details.dart';
 
 class RedmineClientProvider extends ChangeNotifier {
-  int currentPageID = 0;
-  int currentTaskID = 0;
-
   bool isLoggedIn = false;
   bool isTasksLoaded = false;
 
@@ -89,18 +82,7 @@ class RedmineClientProvider extends ChangeNotifier {
   void showAlertMessage(String message, int pageID) {
     showAlert = true;
     alertMessage = message;
-    currentPageID = pageID;
 
-    notifyListeners();
-  }
-
-  void backToTasksList() {
-    currentTaskID = 0;
-    notifyListeners();
-  }
-
-  void setCurrentPage(int index) {
-    currentPageID = index;
     notifyListeners();
   }
 
@@ -109,17 +91,14 @@ class RedmineClientProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> refreshInternetConnectionStatus() async {
+  void refreshInternetConnectionStatus() async {
     await checkInternetConnection();
-
-    if (currentTaskID == 0) {
-      getTasks();
-    } else {
-      getTaskDetails(currentTaskID);
-    }
+    getTasks();
   }
 
-  Future<void> logout() async {
+  void logout(BuildContext widgetContext) async {
+    showAlertDialog('Information', 'You have logged out', widgetContext);
+
     final SharedPreferences prefs = await SharedPreferences.getInstance();
 
     prefs.setString('user_password', "");
@@ -128,13 +107,32 @@ class RedmineClientProvider extends ChangeNotifier {
     userPassword = '';
     isLoggedIn = false;
     isTasksLoaded = false;
-    currentTaskID = 0;
-
-    showAlertMessage('You have logged out', 0);
-    notifyListeners();
   }
 
-  Future<void> loginUser(bool showConfirmMsg) async {
+  void showAlertDialog(String title, String message, BuildContext context) {
+    final alert = AlertDialog(
+      title: Text(title),
+      content: Text(message),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () {
+            context.go('/login');
+            context.pop();
+          },
+          child: const Text('OK'),
+        ),
+      ],
+    );
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return alert;
+      },
+    );
+  }
+
+  Future<void> loginUser(bool showConfirmMsg, ) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
 
     toggleLoading(true);
@@ -219,8 +217,6 @@ class RedmineClientProvider extends ChangeNotifier {
   }
 
   Future<void> getTaskDetails(int taskID) async {
-    currentTaskID = taskID;
-
     DbController dbController = DbController();
 
     if (internetConnection) {
@@ -240,7 +236,6 @@ class RedmineClientProvider extends ChangeNotifier {
         dbController.storeJournalsToDb(issueDetails.id, issueDetails.journals);
       }
     }).catchError((error) {
-      currentTaskID = 0;
       showAlertMessage('Unable load task details: $error', 1);
     });
   }

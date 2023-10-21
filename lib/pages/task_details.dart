@@ -45,7 +45,7 @@ class TaskDetailsPage extends StatelessWidget {
             ),
             child: Column(
               children: [
-                const TasksListHeading(),
+                const TasksListHeading(singleTaskSelected: true),
                 Expanded(
                   child: ListView(
                     children: [

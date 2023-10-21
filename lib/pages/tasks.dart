@@ -82,14 +82,14 @@ class _TasksPageState extends State<TasksPage> {
             ),
             child: Column(
               children: [
-                const TasksListHeading(),
+                const TasksListHeading(singleTaskSelected: false),
                 TasksPieChart(
                   urgent: tasksNumberUrgent,
                   high: tasksNumberHigh,
                   normal: tasksNumberNormal,
                   low: tasksNumberLow,
                 ),
-                NetworkStatus(),
+                const NetworkStatus(),
                 Expanded(
                   child: ListView(children: taskCards),
                 ),

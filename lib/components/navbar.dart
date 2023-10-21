@@ -68,12 +68,12 @@ class NavBar extends StatelessWidget {
           ),
         ),
       );
-
+      
       for (var i = 0; i < mainMenuItems.length; i++) {
         list.add(
           ListTile(
             title: Text(mainMenuItems[i]),
-            selected: appProvider.currentPageID == i,
+            selected: false,
             onTap: () {
               switch (i) {
                 case 0:

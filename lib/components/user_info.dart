@@ -56,7 +56,7 @@ class UserInfo extends StatelessWidget {
           ),
           child: const Text('Logout'),
           onPressed: () {
-            appProvider.logout();
+            appProvider.logout(context);
           },
         ),
       ],
