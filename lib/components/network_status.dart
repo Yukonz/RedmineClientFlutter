@@ -42,7 +42,7 @@ class NetworkStatus extends StatelessWidget {
               child: IconButton(
                 icon: const Icon(Icons.refresh_outlined),
                 onPressed: () {
-                  appProvider.refreshInternetConnectionStatus();
+                  appProvider.refreshInternetConnectionStatus(context);
                 },
               ),
             ),

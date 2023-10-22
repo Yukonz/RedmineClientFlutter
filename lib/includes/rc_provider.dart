@@ -10,6 +10,7 @@ import 'package:redmine_client/models/issue_details.dart';
 
 class RedmineClientProvider extends ChangeNotifier {
   bool isLoggedIn = false;
+  bool loginInProcess = false;
   bool isTasksLoaded = false;
 
   bool loadingProcess = false;
@@ -19,8 +20,6 @@ class RedmineClientProvider extends ChangeNotifier {
   String hostURL = '';
   String userLogin = '';
   String userPassword = '';
-
-  String alertMessage = '';
 
   TextEditingController urlController = TextEditingController();
   TextEditingController loginController = TextEditingController();
@@ -36,7 +35,9 @@ class RedmineClientProvider extends ChangeNotifier {
     checkInternetConnection();
   }
 
-  void autoLogIn() async {
+  void autoLogIn(BuildContext widgetContext) async {
+    loginInProcess = true;
+
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     final String? savedHostURL = prefs.getString('host_url');
     final String? savedUserLogin = prefs.getString('user_login');
@@ -55,7 +56,7 @@ class RedmineClientProvider extends ChangeNotifier {
       passwordController.text = savedUserPassword;
 
       if (lastLoginSuccess == true) {
-        loginUser(false);
+        loginUser(false, widgetContext);
       }
     }
   }
@@ -79,25 +80,18 @@ class RedmineClientProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void showAlertMessage(String message, int pageID) {
-    showAlert = true;
-    alertMessage = message;
-
-    notifyListeners();
-  }
-
   void previewPassword(bool state) {
     showPassword = state;
     notifyListeners();
   }
 
-  void refreshInternetConnectionStatus() async {
+  void refreshInternetConnectionStatus(BuildContext widgetContext) async {
     await checkInternetConnection();
-    getTasks();
+    getTasks(widgetContext);
   }
 
   void logout(BuildContext widgetContext) async {
-    showAlertDialog('Information', 'You have logged out', widgetContext);
+    showAlertDialog('Information', 'You have logged out', '/login', widgetContext);
 
     final SharedPreferences prefs = await SharedPreferences.getInstance();
 
@@ -109,14 +103,14 @@ class RedmineClientProvider extends ChangeNotifier {
     isTasksLoaded = false;
   }
 
-  void showAlertDialog(String title, String message, BuildContext context) {
+  void showAlertDialog(String title, String message, String redirect, BuildContext context) {
     final alert = AlertDialog(
       title: Text(title),
       content: Text(message),
       actions: <Widget>[
         TextButton(
           onPressed: () {
-            context.go('/login');
+            context.go(redirect);
             context.pop();
           },
           child: const Text('OK'),
@@ -132,7 +126,7 @@ class RedmineClientProvider extends ChangeNotifier {
     );
   }
 
-  Future<void> loginUser(bool showConfirmMsg, ) async {
+  Future<void> loginUser(bool showConfirmMsg, BuildContext widgetContext) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
 
     toggleLoading(true);
@@ -168,13 +162,14 @@ class RedmineClientProvider extends ChangeNotifier {
       isLoggedIn = true;
 
       toggleLoading(false);
-
-      showAlertMessage('You have successfully logged into account', 1);
+      showAlertDialog('Information', 'You have successfully logged into account', '/tasks', widgetContext);
+      loginInProcess = false;
     }).catchError((error) {
       prefs.setBool('last_login_success', false);
 
       toggleLoading(false);
-      showAlertMessage('Unable to login: $error', 0);
+      showAlertDialog('Information', 'Unable to login: $error', '/login', widgetContext);
+      loginInProcess = false;
     });
   }
 
@@ -190,7 +185,7 @@ class RedmineClientProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> getTasks() async {
+  Future<void> getTasks(BuildContext widgetContext) async {
     DbController dbController = DbController();
 
     if (internetConnection) {
@@ -212,11 +207,11 @@ class RedmineClientProvider extends ChangeNotifier {
       }
     }).catchError((error) {
       isTasksLoaded = false;
-      showAlertMessage('Unable load tasks list: $error', 0);
+      showAlertDialog('Information', 'Unable load tasks list: $error', '/tasks', widgetContext);
     });
   }
 
-  Future<void> getTaskDetails(int taskID) async {
+  Future<void> getTaskDetails(int taskID, BuildContext widgetContext) async {
     DbController dbController = DbController();
 
     if (internetConnection) {
@@ -236,7 +231,7 @@ class RedmineClientProvider extends ChangeNotifier {
         dbController.storeJournalsToDb(issueDetails.id, issueDetails.journals);
       }
     }).catchError((error) {
-      showAlertMessage('Unable load task details: $error', 1);
+      showAlertDialog('Information', 'Unable load task details: $error', '/tasks', widgetContext);
     });
   }
 }

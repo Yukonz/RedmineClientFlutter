@@ -35,7 +35,7 @@ class _TasksPageState extends State<TasksPage> {
     int tasksNumberLow = 0;
 
     if (appProvider.isLoggedIn && !appProvider.isTasksLoaded) {
-      appProvider.getTasks();
+      appProvider.getTasks(context);
     }
 
     return FutureBuilder<List<dynamic>?>(

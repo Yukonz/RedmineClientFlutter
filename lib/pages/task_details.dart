@@ -18,7 +18,7 @@ class TaskDetailsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     var appProvider = context.watch<RedmineClientProvider>();
 
-    appProvider.getTaskDetails(taskID);
+    appProvider.getTaskDetails(taskID, context);
 
     return FutureBuilder<IssueDetails>(
       future: appProvider.taskDetails,

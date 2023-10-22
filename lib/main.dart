@@ -4,9 +4,9 @@ import 'package:redmine_client/includes/rc_provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:redmine_client/pages/about.dart';
 import 'package:redmine_client/pages/account.dart';
+import 'package:redmine_client/pages/shell.dart';
 import 'package:redmine_client/pages/tasks.dart';
 import 'package:redmine_client/pages/task_details.dart';
-import 'package:redmine_client/components/navbar.dart';
 
 void main() {
   runApp(const RedmineClient());
@@ -21,7 +21,7 @@ final GoRouter _router = GoRouter(
     ShellRoute(
       pageBuilder: (context, state, child) {
         return NoTransitionPage(
-          child: NavBar(
+          child: ShellPage(
             child: child,
           ),
         );

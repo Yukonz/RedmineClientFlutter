@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'package:redmine_client/includes/rc_provider.dart';
 import 'package:redmine_client/models/user.dart';
 import 'package:redmine_client/components/user_info.dart';
-import 'package:loading_animation_widget/loading_animation_widget.dart';
 
 class NavBar extends StatelessWidget {
   const NavBar({required this.child, super.key});
@@ -95,38 +94,6 @@ class NavBar extends StatelessWidget {
       }
 
       return list;
-    }
-
-    if (appProvider.showAlert) {
-      appProvider.showAlert = false;
-
-      return Container(
-        color: Colors.white,
-        child: AlertDialog(
-          title: const Text("Information"),
-          content: Text(appProvider.alertMessage),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('OK'),
-              onPressed: () {
-                context.go('/tasks');
-              },
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (appProvider.loadingProcess) {
-      return Scaffold(
-        backgroundColor: const Color.fromRGBO(0, 128, 255, 1),
-        body: Center(
-          child: LoadingAnimationWidget.beat(
-            color: Colors.white,
-            size: 75,
-          ),
-        ),
-      );
     }
 
     return Scaffold(
