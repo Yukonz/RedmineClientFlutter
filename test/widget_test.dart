@@ -13,7 +13,7 @@ import 'package:redmine_client/main.dart';
 void main() {
   testWidgets('Counter increments smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(RedmineClient());
+    await tester.pumpWidget(const RedmineClient());
 
     // Verify that our counter starts at 0.
     expect(find.text('0'), findsOneWidget);
