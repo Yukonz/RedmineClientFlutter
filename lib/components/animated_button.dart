@@ -54,8 +54,8 @@ class AnimatedButton extends StatelessWidget {
           margin: const EdgeInsets.all(5.0),
           padding: const EdgeInsets.all(10.0),
           decoration: BoxDecoration(
-            border: Border.all(color: Colors.blueAccent),
-            color: const Color.fromRGBO(0, 128, 255, 1),
+            border: Border.all(color: color),
+            color: color,
             borderRadius: BorderRadius.circular(5),
           ),
           child: Row(children: [
