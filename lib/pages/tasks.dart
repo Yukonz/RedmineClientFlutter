@@ -75,10 +75,13 @@ class _TasksPageState extends State<TasksPage> {
             ));
           }
 
-          return Padding(
+          return Container(
             padding: const EdgeInsets.symmetric(
               horizontal: 15,
               vertical: 5,
+            ),
+            decoration: const BoxDecoration(
+              color: Colors.white,
             ),
             child: Column(
               children: [
