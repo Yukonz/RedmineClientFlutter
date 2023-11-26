@@ -16,7 +16,7 @@ class NavBar extends StatelessWidget {
 
     late Future<User> currentUser = appProvider.currentUser;
 
-    double drawerHeadingHeight = 100;
+    double drawerHeadingHeight = 110;
 
     List<String> mainMenuItems = ['User Account', 'My Tasks', 'About'];
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:redmine_client/includes/rc_theme.dart';
 import 'package:redmine_client/includes/rc_provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:redmine_client/pages/about.dart';
@@ -73,9 +74,7 @@ class RedmineClient extends StatelessWidget {
         routerConfig: _router,
         title: 'Redmine Client App',
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          useMaterial3: true,
-        ),
+        theme: rcClientTheme,
       ),
     );
   }
