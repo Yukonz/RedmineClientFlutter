@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -97,7 +98,15 @@ class NavBar extends StatelessWidget {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Redmine Client app')),
+      appBar: AppBar(
+        title: const Text('Redmine Client app'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.exit_to_app),
+            onPressed: () => exit(0),
+          ),
+        ],
+      ),
       body: Center(
         child: child,
       ),
